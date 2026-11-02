@@ -1,14 +1,37 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import HTMLFlipBook from "react-pageflip";
-import { motion } from "framer-motion";
-import { FaTrash, FaVolumeUp, FaStop, FaFilePdf } from "react-icons/fa";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  FaTrash,
+  FaVolumeUp,
+  FaStop,
+  FaFilePdf,
+  FaSearch,
+  FaShareAlt,
+  FaPlay,
+  FaPause,
+  FaTimes,
+  FaArrowLeft,
+  FaArrowRight,
+  FaMagic,
+} from "react-icons/fa";
+import {
+  HiSparkles,
+  HiBookOpen,
+  HiX,
+  HiOutlineBookOpen,
+} from "react-icons/hi";
 import html2pdf from "html2pdf.js";
 import confetti from "canvas-confetti";
 import useSound from "use-sound";
 import toast from "react-hot-toast";
+import { NavLink } from "react-router-dom";
+import { demoStories } from "../data/demoStories";
+import ImageWithSkeleton from "./common/ImageWithSkeleton";
 
 // Helper function to split text into pages
 function paginateText(text, wordLimit = 25) {
+  if (!text) return [];
   const words = text.split(" ");
   let pages = [];
   let pageText = [];
@@ -28,40 +51,43 @@ function paginateText(text, wordLimit = 25) {
   return pages;
 }
 
-// Component to stagger image loading and provide skeleton shimmer during network fetch
+// Component to stagger image loading with animated skeleton shimmer
 function StaggeredImage({ src, alt, index, className }) {
   const [loadSrc, setLoadSrc] = useState(null);
   const [isLoaded, setIsLoaded] = useState(false);
   const [error, setError] = useState(false);
 
-  React.useEffect(() => {
-    // Reset state when src changes
+  useEffect(() => {
     setLoadSrc(null);
     setIsLoaded(false);
     setError(false);
 
-    // If it's the cover (index 0), load immediately
     if (index === 0) {
       setLoadSrc(src);
       return;
     }
 
-    // Stagger image requests to avoid overwhelming the browser/API
     const timer = setTimeout(() => {
       setLoadSrc(src);
-    }, index * 600);
+    }, index * 500);
 
     return () => clearTimeout(timer);
   }, [src, index]);
 
   return (
-    <div className={className + " relative bg-white/50 flex items-center justify-center overflow-hidden transition-all duration-700 group"}>
-      {/* Shimmer Skeleton Overlay while waiting for timer or fetching image */}
+    <div
+      className={
+        className +
+        " relative bg-white/60 flex items-center justify-center overflow-hidden transition-all duration-700 group"
+      }
+    >
       {!error && (!loadSrc || !isLoaded) && (
         <div className="absolute inset-0 z-10 bg-gradient-to-r from-purple-100 via-pink-100 to-purple-100 animate-shimmer flex flex-col items-center justify-center">
           <div className="flex flex-col items-center justify-center opacity-60 animate-pulse">
             <span className="text-3xl mb-1">🪄</span>
-            <span className="text-xs font-bold text-[#5253A3] italic">Sketching magic...</span>
+            <span className="text-xs font-bold text-[#5253A3] italic">
+              Sketching magic...
+            </span>
           </div>
         </div>
       )}
@@ -69,13 +95,15 @@ function StaggeredImage({ src, alt, index, className }) {
       {error ? (
         <div className="flex flex-col items-center justify-center text-gray-400 p-4 text-center z-10">
           <span className="text-4xl mb-2">🎨</span>
-          <p className="text-xs font-bold uppercase text-[#5253A3]">Drawing in progress...</p>
+          <p className="text-xs font-bold uppercase text-[#5253A3]">
+            Drawing in progress...
+          </p>
         </div>
       ) : loadSrc ? (
         <div className="relative w-full h-full">
-          <img 
-            src={loadSrc} 
-            alt={alt} 
+          <img
+            src={loadSrc}
+            alt={alt}
             loading="lazy"
             decoding="async"
             className={`w-full h-full object-cover transition-all duration-700 ${
@@ -83,101 +111,522 @@ function StaggeredImage({ src, alt, index, className }) {
             }`}
             onLoad={(e) => {
               setIsLoaded(true);
-              e.target.classList.remove('grayscale');
-              e.target.style.filter = 'none';
+              e.target.classList.remove("grayscale");
+              e.target.style.filter = "none";
             }}
             onError={() => {
               setError(true);
               setIsLoaded(true);
             }}
           />
-          {/* Paper Texture Overlay */}
-          <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/paper-fibers.png')] opacity-30 pointer-events-none"></div>
+          <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/paper-fibers.png')] opacity-25 pointer-events-none"></div>
         </div>
       ) : null}
     </div>
   );
 }
 
-function BookItem({ story, index, onDelete, unlockAchievement }) {
-  const bookRef = React.useRef();
+// Full-Screen Immersive Reader Modal
+function FlipbookReaderModal({
+  story,
+  onClose,
+  onDownloadPDF,
+  onDownloadColoringBook,
+  onShare,
+  onPlayAudiobook,
+  unlockAchievement,
+}) {
+  const bookRef = useRef(null);
   const [isBilingual, setIsBilingual] = useState(false);
-  const [playPageTurn] = useSound('https://assets.mixkit.co/active_storage/sfx/2572/2572-preview.mp3', { volume: 0.3 });
-  const [playPop] = useSound('https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3', { volume: 0.6 });
+  const [currentPageNum, setCurrentPageNum] = useState(1);
+  const [quizAnswered, setQuizAnswered] = useState(null);
+
+  const [playPageTurn] = useSound(
+    "https://assets.mixkit.co/active_storage/sfx/2572/2572-preview.mp3",
+    { volume: 0.3 }
+  );
+  const [playPop] = useSound(
+    "https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3",
+    { volume: 0.5 }
+  );
+
+  const pages = paginateText(story.text, 25);
+  const totalBookPages = pages.length + 2; // Cover + story pages + Back cover
 
   const handleFlip = (e) => {
     playPageTurn();
-    const totalPages = paginateText(story.text).length + 1;
-    if (e.data >= totalPages) {
+    setCurrentPageNum(e.data + 1);
+    if (e.data >= totalBookPages - 1) {
       confetti({
         particleCount: 150,
-        spread: 80,
+        spread: 85,
         origin: { y: 0.6 },
-        colors: ['#FF9EBB', '#FFF6A3', '#83E4F6']
+        colors: ["#FF9EBB", "#FFF6A3", "#83E4F6", "#98FB98"],
       });
       playPop();
-    }
-  };
-
-  const closeBook = (e) => {
-    e.stopPropagation();
-    if (bookRef.current) {
-      bookRef.current.pageFlip().turnToPage(0);
-    }
-  };
-
-  const readAloud = (text, e) => {
-    e.stopPropagation();
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
-    window.speechSynthesis.speak(utterance);
-  };
-
-  const stopReading = (e) => {
-    e.stopPropagation();
-    window.speechSynthesis.cancel();
-  };
-
-  const playAudiobook = (e, storyText) => {
-    e.stopPropagation();
-    window.speechSynthesis.cancel();
-    const pages = paginateText(storyText, 25);
-    let currentPage = 0;
-    
-    const readNextPage = () => {
-      if (currentPage >= pages.length) return;
-      
-      if (bookRef.current) {
-        bookRef.current.pageFlip().turnToPage(currentPage + 1);
+      if (unlockAchievement) {
+        unlockAchievement("bookworm", "Bookworm", "📖");
       }
-      
+    }
+  };
+
+  const turnNext = () => {
+    if (bookRef.current) {
+      bookRef.current.pageFlip().flipNext();
+    }
+  };
+
+  const turnPrev = () => {
+    if (bookRef.current) {
+      bookRef.current.pageFlip().flipPrev();
+    }
+  };
+
+  const handleQuizChoice = (option, answer) => {
+    if (option === answer) {
+      setQuizAnswered(option);
+      playPop();
+      confetti({
+        particleCount: 100,
+        spread: 70,
+        origin: { y: 0.6 },
+      });
+      toast.success("Brilliant! 🎉 You got it right!", { icon: "🌟" });
+      if (unlockAchievement) {
+        unlockAchievement("quiz_whiz", "Quiz Whiz", "🧠");
+      }
+    } else {
+      toast.error("Almost! Try another choice 🤔");
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex flex-col items-center justify-between p-4 md:p-6 overflow-hidden">
+      {/* Top Reader Navbar */}
+      <div className="w-full max-w-5xl flex items-center justify-between bg-white/10 backdrop-blur-md px-6 py-3 rounded-full border border-white/20 text-white z-20">
+        <div className="flex items-center gap-3">
+          <span className="text-2xl">📖</span>
+          <h2 className="text-lg md:text-xl font-black line-clamp-1">
+            {story.title}
+          </h2>
+        </div>
+
+        <div className="flex items-center gap-2 md:gap-3">
+          <button
+            onClick={() => setIsBilingual(!isBilingual)}
+            className={`px-3 md:px-4 py-1.5 rounded-full font-black text-xs md:text-sm border transition shadow-sm ${
+              isBilingual
+                ? "bg-kidBlue text-[#5253A3] border-white"
+                : "bg-white/20 text-white border-white/40 hover:bg-white/30"
+            }`}
+          >
+            {isBilingual ? "✨ Bilingual: ON" : "🌍 Bilingual: OFF"}
+          </button>
+
+          <button
+            onClick={() => onPlayAudiobook(story, isBilingual)}
+            className="px-3 md:px-4 py-1.5 rounded-full bg-kidYellow text-[#5253A3] font-black text-xs md:text-sm shadow-md hover:scale-105 transition flex items-center gap-1.5"
+          >
+            <FaVolumeUp />
+            <span className="hidden sm:inline">Audiobook</span>
+          </button>
+
+          <button
+            onClick={onClose}
+            className="p-2 rounded-full bg-white/20 hover:bg-white/30 text-white transition ml-2"
+            title="Close Reader"
+          >
+            <HiX size={20} />
+          </button>
+        </div>
+      </div>
+
+      {/* Centered Flipbook Viewport */}
+      <div className="flex-1 w-full flex items-center justify-center my-4 overflow-hidden relative">
+        <HTMLFlipBook
+          ref={bookRef}
+          width={400}
+          height={530}
+          showCover={true}
+          onFlip={handleFlip}
+          className="shadow-[0_25px_60px_rgba(0,0,0,0.6)] rounded-r-2xl overflow-hidden cursor-pointer"
+        >
+          {/* Cover Page */}
+          <div className="relative h-full overflow-hidden flex flex-col rounded-r-2xl border-l-[16px] border-[#a04865] bg-gradient-to-br from-pink-200 via-indigo-100 to-amber-100 shadow-[inset_0_0_20px_rgba(0,0,0,0.2)]">
+            <div className="absolute inset-0 z-0">
+              <StaggeredImage
+                src={story.imageUrl}
+                alt={story.title}
+                index={0}
+                className="w-full h-full object-cover"
+              />
+              <div className="absolute inset-0 bg-black/15"></div>
+            </div>
+
+            <div className="relative z-10 w-full h-full flex flex-col justify-between items-center p-8 text-center">
+              <div className="bg-white/60 backdrop-blur-md rounded-3xl p-6 border border-white/60 shadow-xl w-full">
+                <h1 className="text-3xl font-black text-[#5253A3] leading-tight">
+                  {story.title}
+                </h1>
+                {story.childName && (
+                  <p className="text-sm font-bold text-kidPink uppercase tracking-wider mt-1">
+                    Starring: {story.childName} ⭐
+                  </p>
+                )}
+              </div>
+
+              <div className="bg-white/70 backdrop-blur-md p-4 rounded-3xl border border-white/60 w-full shadow-lg flex flex-col gap-2">
+                <span className="text-xs font-bold text-gray-700 capitalize">
+                  {story.storyType} • {story.language || "English"}
+                </span>
+                <div className="px-4 py-2 bg-[#a04865] text-white rounded-full font-black text-sm shadow animate-pulse">
+                  Click Edge to Turn Page 📖 &rarr;
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Story Pages */}
+          {pages.map((pageContent, pageIndex) => {
+            const geminiPrompt =
+              story.pageImagePrompts && story.pageImagePrompts[pageIndex];
+            const pageImagePrompt =
+              geminiPrompt ||
+              `Children's book illustration: ${story.subject}, ${pageContent.substring(0, 45)}. Colorful Disney Pixar style`;
+            const pageImageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(
+              pageImagePrompt
+            )}?width=800&height=800&nologo=true&seed=${pageIndex + 120}&model=flux`;
+
+            return (
+              <div
+                key={pageIndex}
+                className="relative h-full overflow-hidden flex flex-col shadow-[inset_0_0_10px_rgba(0,0,0,0.1)] border-l border-gray-300 bg-white"
+              >
+                <div className="absolute inset-0 z-0">
+                  <StaggeredImage
+                    src={pageImageUrl}
+                    alt={story.subject}
+                    index={pageIndex + 1}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+
+                <div className="relative z-10 flex flex-col h-full p-6 md:p-8">
+                  <h3 className="text-xl font-black capitalize text-[#5253A3] mb-3 drop-shadow-sm">
+                    {story.title}
+                  </h3>
+
+                  <div className="flex-grow overflow-y-auto pr-2 custom-scrollbar bg-white/70 backdrop-blur-md rounded-2xl p-5 border border-white/60 shadow-lg">
+                    <p className="text-base md:text-lg leading-relaxed text-gray-900 font-bold">
+                      {pageContent}
+                    </p>
+                    {isBilingual && story.englishText && (
+                      <p className="text-sm leading-relaxed text-gray-600 italic font-bold mt-3 pt-3 border-t border-gray-300">
+                        {paginateText(story.englishText)[pageIndex] ||
+                          "Translating..."}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="mt-4 pt-3 border-t border-gray-200/60 flex justify-between items-center text-[#5253A3] font-black text-xs uppercase tracking-wider">
+                    <span className="bg-white/80 px-3 py-1 rounded-full shadow-sm">
+                      Page {pageIndex + 1} of {pages.length}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+
+          {/* Back Cover / Quiz Page */}
+          <div className="flex flex-col justify-between items-center bg-[#5253A3] text-white h-full p-6 md:p-8 text-center rounded-l-2xl border-r-[16px] border-[#3f4082] shadow-[inset_0_0_20px_rgba(0,0,0,0.2)] overflow-y-auto">
+            <div>
+              <h2 className="text-4xl font-extrabold mb-1 drop-shadow-md">
+                The End 🌟
+              </h2>
+              <p className="text-xs text-kidYellow font-bold uppercase tracking-wider">
+                Thanks for reading!
+              </p>
+            </div>
+
+            {/* Quiz Card */}
+            {story.quiz && story.quiz.length > 0 && (
+              <div className="bg-white/15 p-5 rounded-3xl w-full text-left border border-white/20 shadow-inner my-3">
+                <div className="flex items-center gap-2 text-kidYellow font-black text-base mb-2">
+                  <span>🧠</span>
+                  <span>Reading Quiz Time!</span>
+                </div>
+                <p className="font-bold text-xs md:text-sm mb-3 text-white">
+                  {story.quiz[0]?.question}
+                </p>
+                <div className="flex flex-col gap-2">
+                  {story.quiz[0]?.options.map((opt, i) => (
+                    <button
+                      key={i}
+                      onClick={() => handleQuizChoice(opt, story.quiz[0].answer)}
+                      className={`px-3 py-2 rounded-xl text-xs font-black text-left transition shadow-sm border ${
+                        quizAnswered === opt
+                          ? "bg-kidYellow text-[#5253A3] border-white scale-102"
+                          : "bg-white text-[#5253A3] border-transparent hover:bg-yellow-100"
+                      }`}
+                    >
+                      {opt}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Bottom Actions */}
+            <div className="flex flex-col gap-2 w-full">
+              <button
+                onClick={(e) => onDownloadPDF(e, story)}
+                className="w-full py-2.5 rounded-full bg-kidYellow text-[#5253A3] font-black text-xs shadow-md hover:scale-105 transition flex items-center justify-center gap-1.5"
+              >
+                <FaFilePdf /> Save as PDF
+              </button>
+              <button
+                onClick={(e) => onDownloadColoringBook(e, story)}
+                className="w-full py-2.5 rounded-full bg-white text-kidPink font-black text-xs shadow-md hover:scale-105 transition border-2 border-kidPink"
+              >
+                🖍️ Print Coloring Book
+              </button>
+              <button
+                onClick={(e) => onShare(e, story)}
+                className="w-full py-2 rounded-full bg-white/20 text-white font-bold text-xs hover:bg-white/30 transition border border-white/30"
+              >
+                🔗 Share Magic Link
+              </button>
+            </div>
+          </div>
+        </HTMLFlipBook>
+      </div>
+
+      {/* Bottom Page Navigation Controls */}
+      <div className="flex items-center gap-4 z-20">
+        <button
+          onClick={turnPrev}
+          className="px-5 py-2.5 rounded-full bg-white/20 hover:bg-white/30 text-white font-black text-sm backdrop-blur-md border border-white/30 shadow transition flex items-center gap-2"
+        >
+          <FaArrowLeft />
+          <span>Previous</span>
+        </button>
+
+        <span className="text-white text-xs font-bold bg-black/40 px-3 py-1.5 rounded-full backdrop-blur-sm">
+          Page {currentPageNum} of {totalBookPages}
+        </span>
+
+        <button
+          onClick={turnNext}
+          className="px-5 py-2.5 rounded-full bg-white text-[#5253A3] hover:bg-yellow-200 font-black text-sm shadow-lg transition flex items-center gap-2"
+        >
+          <span>Next</span>
+          <FaArrowRight />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// Main Library Component
+function GeneratedBooks({
+  generatedStories = [],
+  updateGeneratedStories,
+  unlockAchievement,
+}) {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("All");
+  const [sortBy, setSortBy] = useState("newest");
+  const [activeReadingStory, setActiveReadingStory] = useState(null);
+
+  // Floating Audiobook Player State
+  const [audioState, setAudioState] = useState({
+    isPlaying: false,
+    isPaused: false,
+    storyTitle: "",
+    currentPage: 0,
+    totalPages: 0,
+    rate: 0.9,
+  });
+
+  const categories = [
+    { label: "All 🌟", value: "All" },
+    { label: "Funny 😂", value: "funny" },
+    { label: "Adventure 🗺️", value: "adventurous" },
+    { label: "Bedtime 🌙", value: "bedtime" },
+    { label: "Educational 🎓", value: "educational" },
+    { label: "Bilingual 🌍", value: "bilingual" },
+  ];
+
+  // Stop audio on unmount
+  useEffect(() => {
+    return () => {
+      window.speechSynthesis.cancel();
+    };
+  }, []);
+
+  // Filter & Sort Stories
+  const filteredStories = generatedStories.filter((s) => {
+    const matchSearch =
+      !searchQuery ||
+      s.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      s.childName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      s.subject?.toLowerCase().includes(searchQuery.toLowerCase());
+
+    const matchCategory =
+      selectedCategory === "All" ||
+      (selectedCategory === "bilingual" &&
+        s.language &&
+        s.language !== "English") ||
+      (selectedCategory === "educational" &&
+        (s.storyType === "educational" || s.storyTheme === "discovery")) ||
+      (selectedCategory === "bedtime" &&
+        (s.storyType === "bed story" || s.storyTone === "calm")) ||
+      (selectedCategory === "adventurous" &&
+        (s.storyTone === "adventurous" || s.storyTone === "exciting")) ||
+      (selectedCategory === "funny" && s.storyTone === "funny");
+
+    return matchSearch && matchCategory;
+  });
+
+  const sortedStories = [...filteredStories].sort((a, b) => {
+    if (sortBy === "az") {
+      return (a.title || "").localeCompare(b.title || "");
+    }
+    return 0; // default newest
+  });
+
+  const handleDeleteStory = (storyToDelete) => {
+    if (window.confirm(`Are you sure you want to delete "${storyToDelete.title}"?`)) {
+      const updated = generatedStories.filter((s) => s !== storyToDelete);
+      updateGeneratedStories(updated);
+      toast.success("Book removed from library");
+      if (activeReadingStory === storyToDelete) {
+        setActiveReadingStory(null);
+      }
+    }
+  };
+
+  const handleLoadDemoStories = () => {
+    updateGeneratedStories(demoStories);
+    toast.success("🪄 Sample magical stories loaded!", { icon: "📚" });
+    confetti({
+      particleCount: 120,
+      spread: 70,
+      origin: { y: 0.6 },
+    });
+  };
+
+  // Audiobook Player Logic
+  const handlePlayAudiobook = (story, isBilingual = false) => {
+    window.speechSynthesis.cancel();
+    const textToRead = isBilingual ? story.englishText || story.text : story.text;
+    const pages = paginateText(textToRead, 25);
+    let currentPage = 0;
+
+    setAudioState({
+      isPlaying: true,
+      isPaused: false,
+      storyTitle: story.title || "Kiddo Tale",
+      currentPage: 1,
+      totalPages: pages.length,
+      rate: 0.9,
+    });
+
+    toast("🎧 Playing audiobook...", { icon: "🎶" });
+
+    const readNextPage = () => {
+      if (currentPage >= pages.length) {
+        setAudioState((prev) => ({ ...prev, isPlaying: false }));
+        return;
+      }
+
+      setAudioState((prev) => ({ ...prev, currentPage: currentPage + 1 }));
+
       const utterance = new SpeechSynthesisUtterance(pages[currentPage]);
-      utterance.rate = 0.9; // Read slightly slower for kids
-      
+      utterance.rate = 0.9;
+
       utterance.onend = () => {
         currentPage++;
-        // Add a small delay between pages
-        setTimeout(readNextPage, 1000);
+        setTimeout(readNextPage, 900);
       };
-      
+
       window.speechSynthesis.speak(utterance);
     };
-    
+
     readNextPage();
   };
 
-  const downloadColoringBook = async (e, story) => {
-    e.stopPropagation();
-    const loadingToast = toast.loading("🎨 Fetching your coloring pages...", {
-      style: {
-        borderRadius: '20px',
-        background: '#5253A3',
-        color: '#fff',
-      },
+  const pauseAudiobook = () => {
+    window.speechSynthesis.pause();
+    setAudioState((prev) => ({ ...prev, isPaused: true }));
+  };
+
+  const resumeAudiobook = () => {
+    window.speechSynthesis.resume();
+    setAudioState((prev) => ({ ...prev, isPaused: false }));
+  };
+
+  const stopAudiobook = () => {
+    window.speechSynthesis.cancel();
+    setAudioState({
+      isPlaying: false,
+      isPaused: false,
+      storyTitle: "",
+      currentPage: 0,
+      totalPages: 0,
+      rate: 0.9,
     });
-    
+  };
+
+  // Share Magic Link
+  const handleShareMagicLink = (e, story) => {
+    if (e) e.stopPropagation();
+    const shareData = {
+      t: story.title,
+      s: story.subject,
+      tx: story.text,
+      et: story.englishText,
+      i: story.imageUrl,
+      l: story.language,
+    };
+    const encoded = btoa(encodeURIComponent(JSON.stringify(shareData)));
+    const url = `${window.location.origin}/?magic=${encoded}`;
+
+    navigator.clipboard.writeText(url).then(() => {
+      toast.success("✨ Magic Link copied to clipboard! Share with friends.", {
+        icon: "🔗",
+        style: { borderRadius: "20px", background: "#5253A3", color: "#fff" },
+      });
+      if (unlockAchievement) {
+        unlockAchievement("sharer", "Social Star", "🌟");
+      }
+    });
+  };
+
+  // Download Coloring Book PDF
+  const handleDownloadColoringBook = async (e, story) => {
+    if (e) e.stopPropagation();
+    const loadingToast = toast.loading("🎨 Preparing your coloring pages...", {
+      style: { borderRadius: "20px", background: "#5253A3", color: "#fff" },
+    });
+
     const pages = paginateText(story.text, 25);
-    
+
+    const getBase64Image = async (url) => {
+      try {
+        const response = await fetch(url);
+        const blob = await response.blob();
+        return new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result);
+          reader.readAsDataURL(blob);
+        });
+      } catch (err) {
+        return url;
+      }
+    };
+
     let printHtml = `
       <html>
         <head>
@@ -210,29 +659,14 @@ function BookItem({ story, index, onDelete, unlockAchievement }) {
             <p style="margin-top: 50px;">Time to color your own adventure! ✨</p>
           </div>
     `;
-    
-    // Function to convert image to base64 so it works perfectly in the new window
-    const getBase64Image = async (url) => {
-      try {
-        const response = await fetch(url);
-        const blob = await response.blob();
-        return new Promise((resolve) => {
-          const reader = new FileReader();
-          reader.onloadend = () => resolve(reader.result);
-          reader.readAsDataURL(blob);
-        });
-      } catch (e) {
-        console.error("Error fetching image for PDF", e);
-        return url; // Fallback to URL
-      }
-    };
 
     for (let i = 0; i < pages.length; i++) {
       const pageImagePrompt = `highly detailed coloring page for kids, thick black outlines, simple white background, no grey, no shading, clean line art. Scene: ${story.subject}, ${pages[i].substring(0, 50)}.`;
-      const pageImageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(pageImagePrompt)}?width=800&height=1000&nologo=true&seed=${i + 42}`;
-      
+      const pageImageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(
+        pageImagePrompt
+      )}?width=800&height=1000&nologo=true&seed=${i + 42}`;
+
       const base64Url = await getBase64Image(pageImageUrl);
-      
       printHtml += `
         <div class="page-break">
           <img src="${base64Url}" onload="window.imageLoaded()" onerror="window.imageLoaded()" />
@@ -249,32 +683,22 @@ function BookItem({ story, index, onDelete, unlockAchievement }) {
             function imageLoaded() {
               loadedCount++;
               if (loadedCount >= totalImages) {
-                // Short delay to ensure browser paints the images
-                setTimeout(() => {
-                  window.print();
-                }, 800);
+                setTimeout(() => { window.print(); }, 800);
               }
             }
-            // Fallback in case onload events fail
-            setTimeout(() => {
-              if(loadedCount < totalImages) window.print();
-            }, 5000);
+            setTimeout(() => { if(loadedCount < totalImages) window.print(); }, 5000);
           </script>
         </body>
       </html>
     `;
 
     toast.dismiss(loadingToast);
-    toast.success("🖍️ Opening Print View! Set destination to 'Save as PDF' if you want a file.", {
+    toast.success("🖍️ Opening Print Preview! Select 'Save as PDF' to save.", {
       duration: 5000,
-      style: {
-        borderRadius: '20px',
-        background: '#FF9EBB',
-        color: '#fff',
-      },
+      style: { borderRadius: "20px", background: "#FF9EBB", color: "#fff" },
     });
 
-    const printWindow = window.open('', '_blank');
+    const printWindow = window.open("", "_blank");
     if (printWindow) {
       printWindow.document.write(printHtml);
       printWindow.document.close();
@@ -283,16 +707,17 @@ function BookItem({ story, index, onDelete, unlockAchievement }) {
     }
   };
 
-  const downloadPDF = async (e, story) => {
-    e.stopPropagation();
+  // Download PDF
+  const handleDownloadPDF = async (e, story) => {
+    if (e) e.stopPropagation();
     const loadingToast = toast.loading("🪄 Formatting your magical PDF...", {
-      style: { borderRadius: '20px', background: '#5253A3', color: '#fff' },
+      style: { borderRadius: "20px", background: "#5253A3", color: "#fff" },
     });
 
     const pages = paginateText(story.text, 25);
     const element = document.createElement("div");
     element.style.width = "800px";
-    
+
     let htmlContent = `
       <div style="font-family: 'Fredoka', sans-serif; color: #333; background: #fff;">
         <div style="padding: 60px; text-align: center; background: #CAD3FF; color: #5253A3; border-bottom: 10px solid #fff;">
@@ -304,8 +729,10 @@ function BookItem({ story, index, onDelete, unlockAchievement }) {
 
     for (let i = 0; i < pages.length; i++) {
       const pageImagePrompt = `Children's book illustration for: ${story.subject}, ${pages[i].substring(0, 50)}. ${story.storyTheme} theme, colorful, professional illustration`;
-      const pageImageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(pageImagePrompt)}?width=800&height=500&nologo=true&seed=${i + 50}`;
-      
+      const pageImageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(
+        pageImagePrompt
+      )}?width=800&height=500&nologo=true&seed=${i + 50}`;
+
       htmlContent += `
         <div style="padding: 40px; page-break-after: always; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 800px;">
           <img src="${pageImageUrl}" style="width: 100%; max-height: 400px; object-fit: cover; border-radius: 20px; border: 4px solid #CAD3FF; margin-bottom: 30px;" />
@@ -321,16 +748,16 @@ function BookItem({ story, index, onDelete, unlockAchievement }) {
     const opt = {
       margin: 0,
       filename: `${story.title || "story"}.pdf`,
-      image: { type: 'jpeg', quality: 0.98 },
+      image: { type: "jpeg", quality: 0.98 },
       html2canvas: { scale: 2, useCORS: true },
-      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
     };
 
     try {
       await html2pdf().from(element).set(opt).save();
       toast.dismiss(loadingToast);
-      toast.success("✨ Your book is ready!", {
-        style: { borderRadius: '20px', background: '#FF9EBB', color: '#fff' },
+      toast.success("✨ Your book PDF is downloaded!", {
+        style: { borderRadius: "20px", background: "#FF9EBB", color: "#fff" },
       });
     } catch (err) {
       console.error(err);
@@ -339,223 +766,302 @@ function BookItem({ story, index, onDelete, unlockAchievement }) {
     }
   };
 
-  const handleDelete = (e) => {
-    e.stopPropagation();
-    if (window.confirm("Are you sure you want to delete this story?")) {
-      onDelete(index);
-    }
-  };
-
-  const shareMagicLink = (e, story) => {
-    e.stopPropagation();
-    const shareData = {
-      t: story.title,
-      s: story.subject,
-      tx: story.text,
-      et: story.englishText,
-      i: story.imageUrl,
-      l: story.language
-    };
-    const encoded = btoa(encodeURIComponent(JSON.stringify(shareData)));
-    const url = `${window.location.origin}/?magic=${encoded}`;
-    
-    navigator.clipboard.writeText(url).then(() => {
-      toast.success("✨ Magic Link copied to clipboard! Share it with your friends.", {
-        icon: '🔗',
-        style: { borderRadius: '20px', background: '#5253A3', color: '#fff' }
-      });
-      unlockAchievement("sharer", "Social Star", "🌟");
-    });
-  };
-
   return (
-         <motion.div 
-           initial={{ opacity: 0, scale: 0.8 }} 
-           animate={{ opacity: 1, scale: 1 }} 
-           transition={{ delay: index * 0.2 }}
-           whileHover={{ y: -15, scale: 1.02 }}
-           className="relative z-10 hover:z-50"
-         >
-          <HTMLFlipBook
-          ref={bookRef}
-          width={450}
-          height={550}
-          showCover={true}
-          onFlip={handleFlip}
-          className="shadow-[0_20px_50px_rgba(0,0,0,0.5)] rounded-r-2xl overflow-hidden cursor-pointer"
-        >
-          {/* Book Cover */}
-          <div className="relative h-full overflow-hidden flex flex-col rounded-r-2xl border-l-[16px] border-[#c05f7d] shadow-[inset_0_0_20px_rgba(0,0,0,0.2)]">
-            {/* Background Image */}
-            <div className="absolute inset-0 z-0">
-              <StaggeredImage 
-                src={story.imageUrl} 
-                alt={story.title} 
-                index={0}
-                className="w-full h-full object-cover" 
-              />
-              {/* Subtle Overlay to make text pop */}
-              <div className="absolute inset-0 bg-black/10"></div>
-            </div>
+    <div className="min-h-screen bg-gradient-to-b from-[#CAD3FF] via-[#dfe5ff] to-[#CAD3FF] p-6 md:p-12 pb-28 relative overflow-hidden font-sans">
+      {/* Background Decor */}
+      <div className="absolute top-10 left-10 w-96 h-96 bg-kidPink rounded-full mix-blend-soft-light filter blur-3xl opacity-25 animate-blob"></div>
+      <div className="absolute top-40 right-10 w-96 h-96 bg-kidYellow rounded-full mix-blend-soft-light filter blur-3xl opacity-25 animate-blob animation-delay-2000"></div>
 
-            <button onClick={handleDelete} className="absolute top-4 right-4 text-white bg-red-500/80 p-3 rounded-full hover:bg-red-600 hover:scale-110 transition z-20 shadow-lg">
-              <FaTrash size={18} />
-            </button>
-
-            <div className="relative z-10 w-full h-full flex flex-col justify-between items-center p-8 text-center">
-              <div className="w-full mt-4">
-                <div className="bg-white/40 backdrop-blur-md rounded-3xl p-6 border border-white/40 shadow-xl inline-block w-full">
-                  <h1 className="text-3xl font-black mb-2 drop-shadow-md text-[#5253A3] leading-tight">{story.title || "KiddoTales Book"}</h1>
-                  {story.childName && <p className="text-lg font-bold text-kidPink drop-shadow-sm mb-0">Starring: {story.childName}</p>}
-                </div>
-              </div>
-              
-              <div className="bg-white/60 backdrop-blur-md p-6 rounded-[2.5rem] border border-white/50 w-full shadow-2xl flex flex-col gap-3">
-                <button onClick={(e) => playAudiobook(e, isBilingual ? story.englishText : story.text)} className="w-full bg-kidYellow text-[#5253A3] py-2 rounded-full font-bold shadow-md hover:scale-105 transition flex items-center justify-center gap-2">
-                  <FaVolumeUp /> Play Audiobook 🎧
-                </button>
-                <button 
-                  onClick={(e) => { e.stopPropagation(); setIsBilingual(!isBilingual); }}
-                  className={`w-full py-2 rounded-full font-bold shadow-md hover:scale-105 transition border-2 ${isBilingual ? 'bg-kidBlue text-white border-white' : 'bg-white text-kidBlue border-kidBlue'}`}
-                >
-                  {isBilingual ? "✨ Bilingual Mode ON" : "🌍 Bilingual Mode OFF"}
-                </button>
-                <div className="mt-2 flex flex-col gap-1 font-medium text-sm">
-                  <p className="capitalize">Type: {story.storyType}</p>
-                  <p>Language: {story.language || 'English'}</p>
-                </div>
-              </div>
-            </div>
-            <div className="mt-4 px-6 py-3 bg-[#c05f7d] text-white rounded-full shadow-lg animate-bounce border-2 border-white/50 w-full flex items-center justify-center">
-              <p className="text-lg font-bold">Open to Read 📖</p>
-            </div>
-            {/* Fairy Dust Overlay when hovered */}
-            <div className="absolute inset-0 bg-white/0 hover:bg-white/10 transition pointer-events-none rounded-r-2xl"></div>
+      <div className="max-w-7xl mx-auto relative z-10">
+        {/* Library Header */}
+        <div className="text-center mb-10">
+          <div className="inline-flex items-center gap-2 bg-white/70 backdrop-blur-md px-5 py-2 rounded-full border-2 border-white shadow-sm mb-4">
+            <HiSparkles className="text-kidPink text-lg" />
+            <span className="text-sm font-black text-[#5253A3] uppercase tracking-wider">
+              {generatedStories.length} {generatedStories.length === 1 ? "Book" : "Books"} in Collection
+            </span>
           </div>
 
-          {/* Book Pages */}
-          {paginateText(story.text).map((pageContent, pageIndex) => {
-            const geminiPrompt = story.pageImagePrompts && story.pageImagePrompts[pageIndex];
-            const pageImagePrompt = geminiPrompt || `Children's book illustration for: ${story.subject}, ${pageContent.substring(0, 50)}. ${story.storyTheme} theme, colorful`;
-            const pageImageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(pageImagePrompt)}?width=800&height=800&nologo=true&seed=${pageIndex + 100}&model=flux`;
+          <h1 className="text-4xl md:text-6xl font-black text-[#5253A3] flex items-center justify-center gap-3 drop-shadow-sm">
+            <span>Magical Story Library</span>
+            <span className="animate-bounce">📚</span>
+          </h1>
+          <p className="text-lg md:text-xl text-[#5253A3]/85 font-bold max-w-2xl mx-auto mt-2">
+            Read online with 3D flipbook animation, listen with interactive audiobooks, or print coloring pages!
+          </p>
+        </div>
 
-            return (
-            <div key={pageIndex} className="relative h-full overflow-hidden flex flex-col shadow-[inset_0_0_10px_rgba(0,0,0,0.1)] border-l border-gray-300">
-              {/* Background Image */}
-              <div className="absolute inset-0 z-0">
-                <StaggeredImage 
-                  src={pageImageUrl} 
-                  alt={story.subject} 
-                  index={pageIndex}
-                  className="w-full h-full object-cover" 
-                />
-              </div>
-
-              {/* Content Overlay */}
-              <div className="relative z-10 flex flex-col h-full p-8">
-                <h2 className="text-2xl font-extrabold capitalize text-[#5253A3] mb-4 drop-shadow-sm">{story.title || "Story Time"}</h2>
-                
-                <div className="flex-grow overflow-y-auto pr-2 custom-scrollbar bg-white/60 backdrop-blur-md rounded-3xl p-6 border border-white/50 shadow-lg">
-                  <p className={`text-[18px] leading-[2rem] text-gray-900 font-bold ${isBilingual ? 'mb-4 border-b pb-4 border-gray-300' : ''}`}>
-                    {pageContent}
-                  </p>
-                  {isBilingual && story.englishText && (
-                    <p className="text-[16px] leading-[1.8rem] text-gray-600 italic font-bold">
-                      {paginateText(story.englishText)[pageIndex] || "Translating magic..."}
-                    </p>
-                  )}
-                </div>
-                
-                <div className="mt-4 pt-4 border-t border-gray-200/50 flex justify-between items-center text-[#5253A3] font-black uppercase tracking-widest text-sm">
-                  <div className="flex gap-4">
-                    <button onClick={(e) => readAloud(pageContent, e)} className="bg-white/80 p-2 rounded-full hover:scale-125 transition shadow-sm border border-white" title="Read Aloud"><FaVolumeUp size={18} /></button>
-                    <button onClick={stopReading} className="bg-white/80 p-2 rounded-full hover:scale-125 transition shadow-sm border border-white" title="Stop Reading"><FaStop size={18} /></button>
-                  </div>
-                  <span className="bg-white/80 px-4 py-1 rounded-full shadow-sm border border-white">Page {pageIndex + 1}</span>
-                </div>
-              </div>
+        {/* Search, Filter, and Action Bar */}
+        <div className="bg-white/70 backdrop-blur-xl p-6 rounded-[2.5rem] border-4 border-white shadow-xl mb-12 flex flex-col gap-5">
+          <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
+            {/* Search Input */}
+            <div className="relative w-full md:w-96">
+              <FaSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search by story, child, or idea..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-11 pr-4 py-3 bg-white rounded-full outline-none border-2 border-transparent focus:border-kidBlue font-bold text-[#5253A3] shadow-sm text-sm"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  <FaTimes />
+                </button>
+              )}
             </div>
-            );
-          })}
-          
-          {/* Back Cover */}
-          <div className="flex flex-col justify-center items-center bg-kidBlue text-white h-full p-8 text-center rounded-l-2xl border-r-[16px] border-[#4aacc2] shadow-[inset_0_0_20px_rgba(0,0,0,0.2)] overflow-y-auto">
-            <h2 className="text-4xl font-extrabold mb-4 drop-shadow-lg">The End</h2>
-            
-            {story.quiz && story.quiz.length > 0 && (
-              <div className="bg-white/20 p-4 rounded-xl mb-4 w-full text-left shadow-inner border border-white/30">
-                <h3 className="text-xl font-extrabold text-kidYellow mb-2 drop-shadow-sm">Quiz Time! 🧠</h3>
-                <p className="font-semibold mb-3 text-sm">{story.quiz[0]?.question}</p>
-                <div className="flex flex-col gap-2">
-                  {story.quiz[0]?.options.map((opt, i) => (
-                    <button key={i} onClick={(e) => { 
-                      e.stopPropagation(); 
-                      if (opt === story.quiz[0].answer) {
-                        toast.success('Correct! 🎉 You are so smart!', { icon: '🌟' });
-                      } else {
-                        toast.error('Oops, try again!', { icon: '🤔' });
-                      }
-                    }} className="bg-white text-kidBlue px-3 py-2 rounded-xl text-sm font-bold hover:bg-kidYellow transition shadow-sm text-left">
-                      {opt}
-                    </button>
-                  ))}
+
+            {/* Quick Actions */}
+            <div className="flex items-center gap-3 w-full md:w-auto justify-end">
+              <button
+                onClick={handleLoadDemoStories}
+                className="px-4 py-2.5 rounded-full bg-white hover:bg-gray-50 text-[#5253A3] font-black text-xs shadow-sm border border-white transition flex items-center gap-1.5"
+              >
+                <FaMagic className="text-kidPink" />
+                <span>Load Sample Books</span>
+              </button>
+
+              <NavLink to="/create">
+                <button className="px-5 py-2.5 rounded-full bg-gradient-to-r from-kidYellow to-amber-400 text-[#5253A3] font-black text-xs shadow-md border-2 border-white hover:scale-105 transition flex items-center gap-1.5">
+                  <HiSparkles />
+                  <span>Create Tale</span>
+                </button>
+              </NavLink>
+            </div>
+          </div>
+
+          {/* Category Filter Pills */}
+          <div className="flex flex-wrap gap-2 pt-2 border-t border-[#5253A3]/10">
+            {categories.map((cat) => (
+              <button
+                key={cat.value}
+                onClick={() => setSelectedCategory(cat.value)}
+                className={`px-4 py-1.5 rounded-full text-xs font-black transition shadow-sm border ${
+                  selectedCategory === cat.value
+                    ? "bg-[#5253A3] text-white border-[#5253A3] scale-105"
+                    : "bg-white/80 text-[#5253A3] border-white hover:bg-white"
+                }`}
+              >
+                {cat.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Bookshelf Grid */}
+        {sortedStories.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+            {sortedStories.map((story, idx) => (
+              <motion.div
+                key={idx}
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: idx * 0.08 }}
+                whileHover={{ y: -10 }}
+                className="bg-white/80 backdrop-blur-md rounded-[2.5rem] border-4 border-white shadow-xl hover:shadow-2xl transition-all duration-300 p-5 flex flex-col justify-between overflow-hidden group relative"
+              >
+                {/* Delete Button */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDeleteStory(story);
+                  }}
+                  className="absolute top-4 right-4 z-20 w-8 h-8 rounded-full bg-white/80 hover:bg-red-500 hover:text-white text-gray-400 flex items-center justify-center transition shadow-md"
+                  title="Delete Book"
+                >
+                  <FaTrash size={12} />
+                </button>
+
+                {/* Book Cover Thumbnail with 3D Spine Illusion */}
+                <div
+                  onClick={() => setActiveReadingStory(story)}
+                  className="cursor-pointer relative aspect-[3/4] w-full rounded-2xl overflow-hidden shadow-md border-l-8 border-[#a04865] mb-4 group-hover:scale-[1.02] transition-transform duration-300 bg-gray-100"
+                >
+                  <ImageWithSkeleton
+                    src={story.imageUrl}
+                    alt={story.title}
+                    containerClassName="w-full h-full"
+                    className="w-full h-full object-cover"
+                  />
+                  {/* Subtle Spine Shade */}
+                  <div className="absolute inset-y-0 left-0 w-3 bg-gradient-to-r from-black/40 to-transparent pointer-events-none"></div>
+
+                  {/* Hover Read Overlay */}
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-2 text-white font-black text-sm">
+                    <HiBookOpen className="text-2xl" />
+                    <span>Open Reader</span>
+                  </div>
                 </div>
-              </div>
+
+                {/* Metadata & Starring Child */}
+                <div className="flex-1 flex flex-col justify-between">
+                  <div>
+                    {story.childName && (
+                      <span className="text-[10px] font-black uppercase tracking-wider text-kidPink bg-pink-50 px-2.5 py-0.5 rounded-full inline-block mb-1.5 border border-pink-200">
+                        ⭐ Starring: {story.childName}
+                      </span>
+                    )}
+                    <h3
+                      onClick={() => setActiveReadingStory(story)}
+                      className="text-xl font-black text-[#5253A3] line-clamp-2 leading-tight cursor-pointer hover:text-kidPink transition mb-2"
+                    >
+                      {story.title}
+                    </h3>
+                  </div>
+
+                  {/* Badges */}
+                  <div className="flex flex-wrap gap-1.5 mb-4">
+                    <span className="text-[10px] font-bold bg-indigo-50 text-indigo-700 px-2.5 py-0.5 rounded-full capitalize">
+                      📖 {story.storyType}
+                    </span>
+                    {story.storyTone && (
+                      <span className="text-[10px] font-bold bg-pink-50 text-pink-700 px-2.5 py-0.5 rounded-full capitalize">
+                        🎭 {story.storyTone}
+                      </span>
+                    )}
+                    <span className="text-[10px] font-bold bg-amber-50 text-amber-700 px-2.5 py-0.5 rounded-full">
+                      🌍 {story.language || "English"}
+                    </span>
+                  </div>
+
+                  {/* Card Action Buttons */}
+                  <div className="flex flex-col gap-2 pt-2 border-t border-gray-100">
+                    <button
+                      onClick={() => setActiveReadingStory(story)}
+                      className="w-full py-2.5 bg-gradient-to-r from-[#5253A3] to-[#43448f] hover:from-[#43448f] hover:to-[#38397a] text-white rounded-full font-black text-xs shadow-md transition flex items-center justify-center gap-1.5"
+                    >
+                      <HiBookOpen size={14} />
+                      <span>Read Flipbook 📖</span>
+                    </button>
+
+                    <div className="grid grid-cols-3 gap-1.5">
+                      <button
+                        onClick={() => handlePlayAudiobook(story)}
+                        className="py-1.5 rounded-xl bg-kidYellow/20 hover:bg-kidYellow text-[#5253A3] font-bold text-[11px] transition flex items-center justify-center gap-1"
+                        title="Listen to Audiobook"
+                      >
+                        <FaVolumeUp size={11} />
+                        <span>Listen</span>
+                      </button>
+
+                      <button
+                        onClick={(e) => handleDownloadColoringBook(e, story)}
+                        className="py-1.5 rounded-xl bg-pink-50 hover:bg-kidPink hover:text-white text-kidPink font-bold text-[11px] transition flex items-center justify-center gap-1"
+                        title="Print Coloring Book"
+                      >
+                        <span>🖍️ Color</span>
+                      </button>
+
+                      <button
+                        onClick={(e) => handleShareMagicLink(e, story)}
+                        className="py-1.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-600 font-bold text-[11px] transition flex items-center justify-center"
+                        title="Share Story Link"
+                      >
+                        <FaShareAlt size={10} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        ) : (
+          /* Empty State */
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-center mt-12 bg-white/70 backdrop-blur-xl p-12 md:p-16 rounded-[3rem] border-4 border-white shadow-2xl max-w-xl mx-auto flex flex-col items-center"
+          >
+            <span className="text-6xl mb-4 animate-bounce">🏰</span>
+            <h2 className="text-3xl font-black text-[#5253A3] mb-2">
+              No matching stories found!
+            </h2>
+            <p className="text-gray-600 font-bold mb-6">
+              Try adjusting your search filters, or load sample demo stories to explore right now!
+            </p>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <button
+                onClick={handleLoadDemoStories}
+                className="px-6 py-3.5 bg-kidYellow text-[#5253A3] font-black rounded-full shadow-lg border-2 border-white hover:scale-105 transition flex items-center justify-center gap-2"
+              >
+                <FaMagic />
+                <span>Load Sample Books</span>
+              </button>
+              <NavLink to="/create">
+                <button className="px-6 py-3.5 bg-[#5253A3] text-white font-black rounded-full shadow-lg border-2 border-white hover:bg-[#43448f] transition flex items-center justify-center gap-2">
+                  <HiSparkles />
+                  <span>Create a Story</span>
+                </button>
+              </NavLink>
+            </div>
+          </motion.div>
+        )}
+      </div>
+
+      {/* Full-Screen Flipbook Reader Modal */}
+      {activeReadingStory && (
+        <FlipbookReaderModal
+          story={activeReadingStory}
+          onClose={() => setActiveReadingStory(null)}
+          onDownloadPDF={handleDownloadPDF}
+          onDownloadColoringBook={handleDownloadColoringBook}
+          onShare={handleShareMagicLink}
+          onPlayAudiobook={handlePlayAudiobook}
+          unlockAchievement={unlockAchievement}
+        />
+      )}
+
+      {/* Floating Kid-Friendly Audiobook Player Bar */}
+      {audioState.isPlaying && (
+        <motion.div
+          initial={{ y: 80, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          exit={{ y: 80, opacity: 0 }}
+          className="fixed bottom-6 inset-x-4 max-w-2xl mx-auto z-40 bg-[#5253A3] text-white rounded-full p-3 px-6 shadow-2xl border-4 border-white flex items-center justify-between gap-4"
+        >
+          <div className="flex items-center gap-3 overflow-hidden">
+            <span className="text-2xl animate-spin" style={{ animationDuration: "4s" }}>
+              🎵
+            </span>
+            <div className="overflow-hidden">
+              <h4 className="text-sm font-black truncate">{audioState.storyTitle}</h4>
+              <p className="text-[11px] text-yellow-300 font-bold flex items-center gap-2">
+                <span>Reading Page {audioState.currentPage} of {audioState.totalPages}</span>
+                <span className="animate-pulse">🎶</span>
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {audioState.isPaused ? (
+              <button
+                onClick={resumeAudiobook}
+                className="w-9 h-9 rounded-full bg-kidYellow text-[#5253A3] flex items-center justify-center font-black shadow hover:scale-105 transition"
+                title="Resume"
+              >
+                <FaPlay size={12} className="ml-0.5" />
+              </button>
+            ) : (
+              <button
+                onClick={pauseAudiobook}
+                className="w-9 h-9 rounded-full bg-white text-[#5253A3] flex items-center justify-center font-black shadow hover:scale-105 transition"
+                title="Pause"
+              >
+                <FaPause size={12} />
+              </button>
             )}
 
-            <div className="flex flex-col gap-3 w-full px-2">
-              <button onClick={(e) => downloadPDF(e, story)} className="w-full flex items-center justify-center gap-2 bg-kidYellow text-[#5253A3] px-4 py-3 rounded-full font-bold shadow-lg hover:scale-105 transition">
-                <FaFilePdf size={16} /> Save as PDF
-              </button>
-              <button onClick={(e) => downloadColoringBook(e, story)} className="w-full flex items-center justify-center gap-2 bg-white text-kidPink px-4 py-3 rounded-full font-bold shadow-lg hover:scale-105 transition border-4 border-kidPink">
-                <FaFilePdf size={16} /> Print Coloring Book 🖍️
-              </button>
-              <button onClick={(e) => shareMagicLink(e, story)} className="w-full flex items-center justify-center gap-2 bg-kidPink text-white px-4 py-3 rounded-full font-bold shadow-lg hover:scale-105 transition">
-                <FaVolumeUp size={16} /> Share Magic Link ✨
-              </button>
-              <button onClick={closeBook} className="w-full mt-2 px-4 py-2 bg-white/20 text-white rounded-full font-bold shadow-sm hover:bg-white/30 transition border border-white/50">
-                Close Book
-              </button>
-            </div>
+            <button
+              onClick={stopAudiobook}
+              className="w-9 h-9 rounded-full bg-red-400 hover:bg-red-500 text-white flex items-center justify-center font-black shadow transition"
+              title="Stop"
+            >
+              <FaStop size={11} />
+            </button>
           </div>
-        </HTMLFlipBook>
-        </motion.div>
-  );
-}
-
-function GeneratedBooks({ generatedStories, updateGeneratedStories, unlockAchievement }) {
-
-  const handleDeleteStory = (index) => {
-    const updated = [...generatedStories];
-    updated.splice(index, 1);
-    updateGeneratedStories(updated);
-  };
-
-  const getThemeBg = () => {
-    if (!generatedStories.length) return "bg-[#1F2937]";
-    const tone = generatedStories[generatedStories.length - 1]?.storyTone; // Use latest story tone
-    if (tone === "funny") return "bg-[#fef08a]";
-    if (tone === "scary") return "bg-[#111827]";
-    if (tone === "bedtime") return "bg-[#0f172a]";
-    if (tone === "adventure") return "bg-[#e0f2fe]";
-    return "bg-[#1F2937]"; // default
-  };
-
-  return (
-    <div className={`flex flex-wrap justify-center items-center gap-16 min-h-screen ${getThemeBg()} transition-colors duration-1000 p-8 pb-20 relative overflow-hidden`}>
-      {/* Decorative background circles */}
-      <div className="absolute top-10 left-10 w-32 h-32 bg-kidPink rounded-full mix-blend-multiply filter blur-2xl opacity-50 animate-blob"></div>
-      <div className="absolute top-10 right-10 w-32 h-32 bg-kidYellow rounded-full mix-blend-multiply filter blur-2xl opacity-50 animate-blob animation-delay-2000"></div>
-      <div className="absolute -bottom-8 left-20 w-32 h-32 bg-kidBlue rounded-full mix-blend-multiply filter blur-2xl opacity-50 animate-blob animation-delay-4000"></div>
-
-      {generatedStories.length > 0 ? (
-        generatedStories.map((story, index) => (
-          <BookItem key={index} story={story} index={index} onDelete={handleDeleteStory} unlockAchievement={unlockAchievement} />
-        ))
-      ) : (
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center mt-20 bg-white/10 p-12 rounded-3xl backdrop-blur-md border border-white/20">
-          <h2 className="text-5xl font-extrabold text-white mb-4 drop-shadow-lg">No stories yet! 🥲</h2>
-          <p className="text-2xl text-kidYellow font-medium">Head over to 'Create Story' to craft some magic.</p>
         </motion.div>
       )}
     </div>
