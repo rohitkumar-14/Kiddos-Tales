@@ -85,11 +85,11 @@ export const bunnyLineArt = `data:image/svg+xml;utf8,${encodeURIComponent(`
   <path d="M0,480 Q160,420 320,460 Q460,490 600,440 L600,600 L0,600 Z" fill="#FFFFFF" stroke="#000000" stroke-width="6"/>
 
   <!-- Bunny Ears -->
-  <path d="M240,240 C220,130 200,70 235,50 C265,30 280,110 270,225" fill="#FFFFFF" stroke="#000000" stroke-width="7"/>
-  <path d="M242,190 C235,130 220,95 240,80 C255,70 265,115 260,180" fill="#FFFFFF" stroke="#000000" stroke-width="4"/>
+  <path d="M240,240 C220,130 200,70 235,50 C265,30 280,110 270,225 Z" fill="#FFFFFF" stroke="#000000" stroke-width="7"/>
+  <path d="M242,190 C235,130 220,95 240,80 C255,70 265,115 260,180 Z" fill="#FFFFFF" stroke="#000000" stroke-width="4"/>
 
-  <path d="M320,230 C330,120 350,65 385,75 C415,85 390,160 355,235" fill="#FFFFFF" stroke="#000000" stroke-width="7"/>
-  <path d="M335,190 C345,130 360,95 375,100 C390,110 380,150 355,195" fill="#FFFFFF" stroke="#000000" stroke-width="4"/>
+  <path d="M320,230 C330,120 350,65 385,75 C415,85 390,160 355,235 Z" fill="#FFFFFF" stroke="#000000" stroke-width="7"/>
+  <path d="M335,190 C345,130 360,95 375,100 C390,110 380,150 355,195 Z" fill="#FFFFFF" stroke="#000000" stroke-width="4"/>
 
   <!-- Bunny Head -->
   <ellipse cx="300" cy="270" rx="85" ry="75" fill="#FFFFFF" stroke="#000000" stroke-width="7"/>
@@ -111,10 +111,10 @@ export const bunnyLineArt = `data:image/svg+xml;utf8,${encodeURIComponent(`
   <line x1="350" y1="290" x2="415" y2="295" stroke="#000000" stroke-width="4" stroke-linecap="round"/>
 
   <!-- Bunny Body -->
-  <path d="M230,330 C200,370 190,460 230,490 C270,510 330,510 370,490 C410,460 400,370 370,330" fill="#FFFFFF" stroke="#000000" stroke-width="7"/>
+  <path d="M230,310 C200,370 190,460 230,490 C270,510 330,510 370,490 C410,460 400,370 370,310 Z" fill="#FFFFFF" stroke="#000000" stroke-width="7"/>
 
   <!-- Fluffy Belly -->
-  <ellipse cx="300" cy="420" rx="45" ry="50" fill="#FFFFFF" stroke="#000000" stroke-width="4" stroke-dasharray="8 6"/>
+  <ellipse cx="300" cy="420" rx="45" ry="50" fill="#FFFFFF" stroke="#000000" stroke-width="5"/>
 
   <!-- Bunny Paws holding carrot -->
   <ellipse cx="250" cy="380" rx="20" ry="15" fill="#FFFFFF" stroke="#000000" stroke-width="6"/>
@@ -142,8 +142,7 @@ export const castleLineArt = `data:image/svg+xml;utf8,${encodeURIComponent(`
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" width="100%" height="100%">
   <rect width="600" height="600" fill="#FFFFFF"/>
   <!-- Clouds & Rainbow -->
-  <path d="M60,250 C120,100 480,100 540,250" fill="none" stroke="#000000" stroke-width="6"/>
-  <path d="M80,250 C140,120 460,120 520,250" fill="none" stroke="#000000" stroke-width="5"/>
+  <path d="M60,250 C120,100 480,100 540,250 L520,250 C460,125 140,125 80,250 Z" fill="#FFFFFF" stroke="#000000" stroke-width="6"/>
 
   <!-- Castle Towers -->
   <!-- Left Tower -->

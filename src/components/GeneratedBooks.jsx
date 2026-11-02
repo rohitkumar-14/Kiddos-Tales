@@ -1018,10 +1018,10 @@ function GeneratedBooks({
                     <div className="grid grid-cols-4 gap-1.5">
                       <button
                         onClick={() => handlePlayAudiobook(story)}
-                        className="py-1.5 rounded-xl bg-amber-100/70 hover:bg-kidYellow text-[#5253A3] font-bold text-[11px] transition flex items-center justify-center gap-1 border border-amber-200/50"
+                        className="py-1.5 px-1 rounded-xl bg-amber-100/80 hover:bg-kidYellow text-[#5253A3] font-black text-[11px] transition flex items-center justify-center gap-1 border border-amber-200/50"
                         title="Listen to Audiobook"
                       >
-                        <FaHeadphones size={12} className="text-[#5253A3]" />
+                        <FaHeadphones size={13} className="text-[#5253A3] shrink-0" style={{ minWidth: "13px", minHeight: "13px" }} />
                         <span>Listen</span>
                       </button>
 
@@ -1030,10 +1030,10 @@ function GeneratedBooks({
                           e.stopPropagation();
                           setColoringStory(story);
                         }}
-                        className="py-1.5 rounded-xl bg-pink-50 hover:bg-kidPink hover:text-white text-kidPink font-bold text-[11px] transition flex items-center justify-center gap-1 border border-pink-200/50 group"
+                        className="py-1.5 px-1 rounded-xl bg-pink-50 hover:bg-kidPink hover:text-white text-kidPink font-black text-[11px] transition flex items-center justify-center gap-1 border border-pink-200/50 group"
                         title="Interactive Coloring Studio & Sketch Book"
                       >
-                        <FaPalette size={11} />
+                        <FaPalette size={13} className="shrink-0" style={{ minWidth: "13px", minHeight: "13px" }} />
                         <span>Color</span>
                       </button>
 
@@ -1042,7 +1042,7 @@ function GeneratedBooks({
                         className="py-1.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-[11px] transition flex items-center justify-center border border-gray-200/50"
                         title="Share Story Link"
                       >
-                        <FaShareAlt size={11} />
+                        <FaShareAlt size={12} className="shrink-0" style={{ minWidth: "12px", minHeight: "12px" }} />
                       </button>
 
                       <button
@@ -1053,7 +1053,7 @@ function GeneratedBooks({
                         className="py-1.5 rounded-xl bg-gray-100 hover:bg-rose-50 hover:text-rose-500 text-gray-400 font-bold text-[11px] transition flex items-center justify-center border border-gray-200/50"
                         title="Delete Book"
                       >
-                        <FaTrash size={11} />
+                        <FaTrash size={12} className="shrink-0" style={{ minWidth: "12px", minHeight: "12px" }} />
                       </button>
                     </div>
                   </div>
@@ -1141,34 +1141,36 @@ function GeneratedBooks({
             </div>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-3 shrink-0">
+            {/* White Circle Play/Pause Button */}
             {audioState.isPaused ? (
               <button
                 onClick={resumeAudiobook}
-                className="px-4 py-2 rounded-full bg-kidYellow hover:bg-yellow-300 text-[#5253A3] font-black text-xs shadow-lg hover:scale-105 active:scale-95 transition flex items-center gap-2 border-2 border-white"
-                title="Resume Reading"
+                className="w-12 h-12 rounded-full bg-kidYellow text-[#5253A3] flex items-center justify-center shadow-xl hover:scale-110 active:scale-95 transition border-2 border-white shrink-0"
+                title="Resume"
+                aria-label="Resume Audiobook"
               >
-                <FaPlay className="text-sm text-[#5253A3]" />
-                <span className="font-black">Resume</span>
+                <FaPlay size={18} className="ml-0.5 text-[#5253A3] shrink-0" style={{ minWidth: "18px", minHeight: "18px", color: "#5253A3" }} />
               </button>
             ) : (
               <button
                 onClick={pauseAudiobook}
-                className="px-4 py-2 rounded-full bg-white hover:bg-gray-100 text-[#5253A3] font-black text-xs shadow-lg hover:scale-105 active:scale-95 transition flex items-center gap-2 border-2 border-[#5253A3]/20"
-                title="Pause Audiobook"
+                className="w-12 h-12 rounded-full bg-white text-[#5253A3] flex items-center justify-center shadow-xl hover:scale-110 active:scale-95 transition border-2 border-white shrink-0"
+                title="Pause"
+                aria-label="Pause Audiobook"
               >
-                <FaPause className="text-sm text-[#5253A3]" />
-                <span className="font-black">Pause</span>
+                <FaPause size={18} className="text-[#5253A3] shrink-0" style={{ minWidth: "18px", minHeight: "18px", color: "#5253A3" }} />
               </button>
             )}
 
+            {/* Red Circle Stop Button */}
             <button
               onClick={stopAudiobook}
-              className="px-4 py-2 rounded-full bg-rose-500 hover:bg-rose-600 text-white font-black text-xs shadow-lg hover:scale-105 active:scale-95 transition flex items-center gap-2 border-2 border-white"
-              title="Stop Audiobook"
+              className="w-12 h-12 rounded-full bg-rose-500 hover:bg-rose-600 text-white flex items-center justify-center shadow-xl hover:scale-110 active:scale-95 transition border-2 border-white shrink-0"
+              title="Stop"
+              aria-label="Stop Audiobook"
             >
-              <FaStop className="text-xs text-white" />
-              <span className="font-black">Stop</span>
+              <FaStop size={16} className="text-white shrink-0" style={{ minWidth: "16px", minHeight: "16px", color: "#FFFFFF" }} />
             </button>
           </div>
         </motion.div>

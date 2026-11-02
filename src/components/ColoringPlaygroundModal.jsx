@@ -112,6 +112,53 @@ export default function ColoringPlaygroundModal({
 
   // Current line art source
   const currentLineArtUrl = getLineArtForStory(story, activePageIndex);
+  const lineArtMaskRef = useRef(null);
+
+  // Pre-rasterize line art into an offscreen binary mask (1 = outline border, 0 = fillable region)
+  const buildLineArtMask = useCallback((url) => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.onload = () => {
+        try {
+          const offCanvas = document.createElement("canvas");
+          offCanvas.width = 700;
+          offCanvas.height = 700;
+          const offCtx = offCanvas.getContext("2d", { willReadFrequently: true });
+          offCtx.fillStyle = "#FFFFFF";
+          offCtx.fillRect(0, 0, 700, 700);
+          offCtx.drawImage(img, 0, 0, 700, 700);
+
+          const imgData = offCtx.getImageData(0, 0, 700, 700);
+          const data = imgData.data;
+          const mask = new Uint8Array(700 * 700);
+
+          for (let i = 0; i < data.length; i += 4) {
+            const r = data[i];
+            const g = data[i + 1];
+            const b = data[i + 2];
+            const a = data[i + 3];
+            // Black strokes (#000000) have low luminance; antialiased edge pixels are < 135
+            const lum = r * 0.299 + g * 0.587 + b * 0.114;
+            if (a > 50 && lum < 135) {
+              mask[i >> 2] = 1; // Solid barrier line
+            }
+          }
+          lineArtMaskRef.current = mask;
+          resolve(mask);
+        } catch (err) {
+          console.error("Mask build error:", err);
+          resolve(null);
+        }
+      };
+      img.onerror = () => resolve(null);
+      img.src = url;
+    });
+  }, []);
+
+  useEffect(() => {
+    buildLineArtMask(currentLineArtUrl);
+  }, [currentLineArtUrl, buildLineArtMask]);
 
   // Initialize Canvas
   const initCanvas = useCallback(() => {
@@ -239,69 +286,159 @@ export default function ColoringPlaygroundModal({
     };
   };
 
-  // Flood Fill / Paint Bucket Algorithm
+  // Flood Fill / Paint Bucket Algorithm (Strictly bounded by vector line-art outlines)
   const handleFloodFill = (startX, startY, fillHex) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const ctx = canvas.getContext("2d");
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
     const width = canvas.width;
     const height = canvas.height;
+
+    // Ensure line-art boundary mask exists
+    let mask = lineArtMaskRef.current;
+    if (!mask) {
+      try {
+        const offCanvas = document.createElement("canvas");
+        offCanvas.width = width;
+        offCanvas.height = height;
+        const offCtx = offCanvas.getContext("2d", { willReadFrequently: true });
+        offCtx.fillStyle = "#FFFFFF";
+        offCtx.fillRect(0, 0, width, height);
+        const tempImg = new Image();
+        tempImg.src = currentLineArtUrl;
+        offCtx.drawImage(tempImg, 0, 0, width, height);
+        const imgD = offCtx.getImageData(0, 0, width, height);
+        const d = imgD.data;
+        mask = new Uint8Array(width * height);
+        for (let i = 0; i < d.length; i += 4) {
+          const lum = d[i] * 0.299 + d[i + 1] * 0.587 + d[i + 2] * 0.114;
+          if (d[i + 3] > 50 && lum < 135) {
+            mask[i >> 2] = 1;
+          }
+        }
+        lineArtMaskRef.current = mask;
+      } catch (err) {
+        console.error("Failed to build fallback line-art mask:", err);
+      }
+    }
+
     const imgData = ctx.getImageData(0, 0, width, height);
     const data = imgData.data;
 
-    // Convert hex to RGB
+    // Parse target fill color from hex
     const fillR = parseInt(fillHex.slice(1, 3), 16);
     const fillG = parseInt(fillHex.slice(3, 5), 16);
     const fillB = parseInt(fillHex.slice(5, 7), 16);
 
-    const intX = Math.floor(startX);
-    const intY = Math.floor(startY);
-    const startIndex = (intY * width + intX) * 4;
+    let intX = Math.round(startX);
+    let intY = Math.round(startY);
+    if (intX < 0 || intX >= width || intY < 0 || intY >= height) return;
 
-    const targetR = data[startIndex];
-    const targetG = data[startIndex + 1];
-    const targetB = data[startIndex + 2];
+    // If child clicked directly on an outline line, find the nearest open pixel in a 5px radius
+    let pIdx = intY * width + intX;
+    if (mask && mask[pIdx] === 1) {
+      let found = false;
+      for (let radius = 1; radius <= 5 && !found; radius++) {
+        const offsets = [
+          [radius, 0], [-radius, 0], [0, radius], [0, -radius],
+          [radius, radius], [-radius, -radius], [radius, -radius], [-radius, radius]
+        ];
+        for (const [dx, dy] of offsets) {
+          const nx = intX + dx;
+          const ny = intY + dy;
+          if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
+            const nIdx = ny * width + nx;
+            if (!mask[nIdx]) {
+              intX = nx;
+              intY = ny;
+              pIdx = nIdx;
+              found = true;
+              break;
+            }
+          }
+        }
+      }
+      if (!found) return; // Inside a thick border
+    }
 
-    // If clicking on same color or dark line, abort
+    const startPixel = pIdx * 4;
+    const targetR = data[startPixel];
+    const targetG = data[startPixel + 1];
+    const targetB = data[startPixel + 2];
+
+    // Already the exact same color?
     if (
-      Math.abs(targetR - fillR) < 15 &&
-      Math.abs(targetG - fillG) < 15 &&
-      Math.abs(targetB - fillB) < 15
+      Math.abs(targetR - fillR) < 12 &&
+      Math.abs(targetG - fillG) < 12 &&
+      Math.abs(targetB - fillB) < 12
     ) {
       return;
     }
-    if (targetR < 50 && targetG < 50 && targetB < 50) return;
 
-    const tolerance = 40;
-    const matchColor = (idx) => {
+    const tolerance = 42;
+    // Check if pixel (x, y) can be filled: matches target color AND is not a line boundary
+    const canFill = (x, y) => {
+      const idx = y * width + x;
+      if (mask && mask[idx] === 1) return false;
+      const dIdx = idx * 4;
       return (
-        Math.abs(data[idx] - targetR) <= tolerance &&
-        Math.abs(data[idx + 1] - targetG) <= tolerance &&
-        Math.abs(data[idx + 2] - targetB) <= tolerance
+        Math.abs(data[dIdx] - targetR) <= tolerance &&
+        Math.abs(data[dIdx + 1] - targetG) <= tolerance &&
+        Math.abs(data[dIdx + 2] - targetB) <= tolerance
       );
     };
 
-    const queue = [[intX, intY]];
-    const visited = new Uint8Array(width * height);
+    // Fast Span-based Scanline Flood Fill
+    const pixelStack = [[intX, intY]];
+    const filled = new Uint8Array(width * height);
 
-    while (queue.length > 0) {
-      const [cx, cy] = queue.pop();
-      const pixelIdx = cy * width + cx;
-      if (visited[pixelIdx]) continue;
-      visited[pixelIdx] = 1;
+    while (pixelStack.length > 0) {
+      const [curX, curY] = pixelStack.pop();
+      let x1 = curX;
 
-      const dIdx = pixelIdx * 4;
-      if (!matchColor(dIdx)) continue;
+      // Scan left to find start of fillable horizontal span
+      while (x1 >= 0 && canFill(x1, curY) && !filled[curY * width + x1]) {
+        x1--;
+      }
+      x1++;
 
-      data[dIdx] = fillR;
-      data[dIdx + 1] = fillG;
-      data[dIdx + 2] = fillB;
-      data[dIdx + 3] = 255;
+      // Scan right to find end of fillable horizontal span
+      let x2 = curX;
+      while (x2 < width && canFill(x2, curY) && !filled[curY * width + x2]) {
+        x2++;
+      }
+      x2--;
 
-      if (cx > 0) queue.push([cx - 1, cy]);
-      if (cx < width - 1) queue.push([cx + 1, cy]);
-      if (cy > 0) queue.push([cx, cy - 1]);
-      if (cy < height - 1) queue.push([cx, cy + 1]);
+      // Fill pixels along the span
+      for (let x = x1; x <= x2; x++) {
+        const idx = curY * width + x;
+        filled[idx] = 1;
+        const dIdx = idx * 4;
+        data[dIdx] = fillR;
+        data[dIdx + 1] = fillG;
+        data[dIdx + 2] = fillB;
+        data[dIdx + 3] = 255;
+      }
+
+      // Check rows directly above and below to seed contiguous spans
+      const checkRow = (nextY) => {
+        if (nextY < 0 || nextY >= height) return;
+        let spanAdded = false;
+        for (let x = x1; x <= x2; x++) {
+          const idx = nextY * width + x;
+          if (!filled[idx] && canFill(x, nextY)) {
+            if (!spanAdded) {
+              pixelStack.push([x, nextY]);
+              spanAdded = true;
+            }
+          } else {
+            spanAdded = false;
+          }
+        }
+      };
+
+      checkRow(curY - 1);
+      checkRow(curY + 1);
     }
 
     ctx.putImageData(imgData, 0, 0);
