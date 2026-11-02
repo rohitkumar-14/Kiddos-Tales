@@ -14,6 +14,16 @@ import {
   FaArrowLeft,
   FaArrowRight,
   FaMagic,
+  FaHeadphones,
+  FaPalette,
+  FaStar,
+  FaTheaterMasks,
+  FaGlobe,
+  FaBrain,
+  FaSmile,
+  FaCompass,
+  FaMoon,
+  FaGraduationCap,
 } from "react-icons/fa";
 import {
   HiSparkles,
@@ -28,6 +38,7 @@ import toast from "react-hot-toast";
 import { NavLink } from "react-router-dom";
 import { demoStories } from "../data/demoStories";
 import ImageWithSkeleton from "./common/ImageWithSkeleton";
+import defaultCoverFallback from "../assets/story.webp";
 
 // Helper function to split text into pages
 function paginateText(text, wordLimit = 25) {
@@ -52,27 +63,33 @@ function paginateText(text, wordLimit = 25) {
 }
 
 // Component to stagger image loading with animated skeleton shimmer
-function StaggeredImage({ src, alt, index, className }) {
-  const [loadSrc, setLoadSrc] = useState(null);
+function StaggeredImage({
+  src,
+  alt,
+  index,
+  className,
+  fallbackSrc = defaultCoverFallback,
+}) {
+  const [loadSrc, setLoadSrc] = useState(src || fallbackSrc);
   const [isLoaded, setIsLoaded] = useState(false);
   const [error, setError] = useState(false);
 
   useEffect(() => {
-    setLoadSrc(null);
+    const validSrc = src || fallbackSrc;
+    setLoadSrc(validSrc);
     setIsLoaded(false);
     setError(false);
 
     if (index === 0) {
-      setLoadSrc(src);
       return;
     }
 
     const timer = setTimeout(() => {
-      setLoadSrc(src);
-    }, index * 500);
+      setLoadSrc(validSrc);
+    }, Math.min(index * 350, 1200));
 
     return () => clearTimeout(timer);
-  }, [src, index]);
+  }, [src, fallbackSrc, index]);
 
   return (
     <div
@@ -83,8 +100,8 @@ function StaggeredImage({ src, alt, index, className }) {
     >
       {!error && (!loadSrc || !isLoaded) && (
         <div className="absolute inset-0 z-10 bg-gradient-to-r from-purple-100 via-pink-100 to-purple-100 animate-shimmer flex flex-col items-center justify-center">
-          <div className="flex flex-col items-center justify-center opacity-60 animate-pulse">
-            <span className="text-3xl mb-1">🪄</span>
+          <div className="flex flex-col items-center justify-center opacity-70 animate-pulse">
+            <HiSparkles className="text-3xl text-kidPink mb-1" />
             <span className="text-xs font-bold text-[#5253A3] italic">
               Sketching magic...
             </span>
@@ -93,10 +110,10 @@ function StaggeredImage({ src, alt, index, className }) {
       )}
 
       {error ? (
-        <div className="flex flex-col items-center justify-center text-gray-400 p-4 text-center z-10">
-          <span className="text-4xl mb-2">🎨</span>
-          <p className="text-xs font-bold uppercase text-[#5253A3]">
-            Drawing in progress...
+        <div className="flex flex-col items-center justify-center text-[#5253A3] p-4 text-center z-10 bg-indigo-50/80 w-full h-full">
+          <HiBookOpen className="text-4xl text-[#5253A3] mb-2" />
+          <p className="text-xs font-black uppercase text-[#5253A3] tracking-wider">
+            {alt || "Magical Illustration"}
           </p>
         </div>
       ) : loadSrc ? (
@@ -115,8 +132,12 @@ function StaggeredImage({ src, alt, index, className }) {
               e.target.style.filter = "none";
             }}
             onError={() => {
-              setError(true);
-              setIsLoaded(true);
+              if (loadSrc !== fallbackSrc && fallbackSrc) {
+                setLoadSrc(fallbackSrc);
+              } else {
+                setError(true);
+                setIsLoaded(true);
+              }
             }}
           />
           <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/paper-fibers.png')] opacity-25 pointer-events-none"></div>
@@ -205,7 +226,7 @@ function FlipbookReaderModal({
       {/* Top Reader Navbar */}
       <div className="w-full max-w-5xl flex items-center justify-between bg-white/10 backdrop-blur-md px-6 py-3 rounded-full border border-white/20 text-white z-20">
         <div className="flex items-center gap-3">
-          <span className="text-2xl">📖</span>
+          <HiBookOpen className="text-2xl text-yellow-300" />
           <h2 className="text-lg md:text-xl font-black line-clamp-1">
             {story.title}
           </h2>
@@ -214,20 +235,21 @@ function FlipbookReaderModal({
         <div className="flex items-center gap-2 md:gap-3">
           <button
             onClick={() => setIsBilingual(!isBilingual)}
-            className={`px-3 md:px-4 py-1.5 rounded-full font-black text-xs md:text-sm border transition shadow-sm ${
+            className={`px-3 md:px-4 py-1.5 rounded-full font-black text-xs md:text-sm border transition shadow-sm flex items-center gap-1.5 ${
               isBilingual
                 ? "bg-kidBlue text-[#5253A3] border-white"
                 : "bg-white/20 text-white border-white/40 hover:bg-white/30"
             }`}
           >
-            {isBilingual ? "✨ Bilingual: ON" : "🌍 Bilingual: OFF"}
+            <FaGlobe className="text-xs" />
+            <span>Bilingual: {isBilingual ? "ON" : "OFF"}</span>
           </button>
 
           <button
             onClick={() => onPlayAudiobook(story, isBilingual)}
             className="px-3 md:px-4 py-1.5 rounded-full bg-kidYellow text-[#5253A3] font-black text-xs md:text-sm shadow-md hover:scale-105 transition flex items-center gap-1.5"
           >
-            <FaVolumeUp />
+            <FaHeadphones size={13} />
             <span className="hidden sm:inline">Audiobook</span>
           </button>
 
@@ -255,7 +277,8 @@ function FlipbookReaderModal({
           <div className="relative h-full overflow-hidden flex flex-col rounded-r-2xl border-l-[16px] border-[#a04865] bg-gradient-to-br from-pink-200 via-indigo-100 to-amber-100 shadow-[inset_0_0_20px_rgba(0,0,0,0.2)]">
             <div className="absolute inset-0 z-0">
               <StaggeredImage
-                src={story.imageUrl}
+                src={story.imageUrl || story.coverImage || defaultCoverFallback}
+                fallbackSrc={defaultCoverFallback}
                 alt={story.title}
                 index={0}
                 className="w-full h-full object-cover"
@@ -269,18 +292,21 @@ function FlipbookReaderModal({
                   {story.title}
                 </h1>
                 {story.childName && (
-                  <p className="text-sm font-bold text-kidPink uppercase tracking-wider mt-1">
-                    Starring: {story.childName} ⭐
+                  <p className="text-sm font-bold text-kidPink uppercase tracking-wider mt-1 flex items-center justify-center gap-1">
+                    <FaStar className="text-amber-400 text-xs inline" />
+                    <span>Starring: {story.childName}</span>
                   </p>
                 )}
               </div>
 
               <div className="bg-white/70 backdrop-blur-md p-4 rounded-3xl border border-white/60 w-full shadow-lg flex flex-col gap-2">
-                <span className="text-xs font-bold text-gray-700 capitalize">
-                  {story.storyType} • {story.language || "English"}
+                <span className="text-xs font-bold text-gray-700 capitalize flex items-center justify-center gap-1.5">
+                  <HiBookOpen className="text-indigo-600 text-sm" />
+                  <span>{story.storyType} • {story.language || "English"}</span>
                 </span>
-                <div className="px-4 py-2 bg-[#a04865] text-white rounded-full font-black text-sm shadow animate-pulse">
-                  Click Edge to Turn Page 📖 &rarr;
+                <div className="px-4 py-2 bg-[#a04865] text-white rounded-full font-black text-sm shadow animate-pulse flex items-center justify-center gap-2">
+                  <span>Click Edge to Turn Page</span>
+                  <FaArrowRight className="text-xs" />
                 </div>
               </div>
             </div>
@@ -341,8 +367,9 @@ function FlipbookReaderModal({
           {/* Back Cover / Quiz Page */}
           <div className="flex flex-col justify-between items-center bg-[#5253A3] text-white h-full p-6 md:p-8 text-center rounded-l-2xl border-r-[16px] border-[#3f4082] shadow-[inset_0_0_20px_rgba(0,0,0,0.2)] overflow-y-auto">
             <div>
-              <h2 className="text-4xl font-extrabold mb-1 drop-shadow-md">
-                The End 🌟
+              <h2 className="text-4xl font-extrabold mb-1 drop-shadow-md flex items-center justify-center gap-2">
+                <span>The End</span>
+                <HiSparkles className="text-yellow-300 text-3xl" />
               </h2>
               <p className="text-xs text-kidYellow font-bold uppercase tracking-wider">
                 Thanks for reading!
@@ -353,7 +380,7 @@ function FlipbookReaderModal({
             {story.quiz && story.quiz.length > 0 && (
               <div className="bg-white/15 p-5 rounded-3xl w-full text-left border border-white/20 shadow-inner my-3">
                 <div className="flex items-center gap-2 text-kidYellow font-black text-base mb-2">
-                  <span>🧠</span>
+                  <FaBrain className="text-kidYellow text-lg" />
                   <span>Reading Quiz Time!</span>
                 </div>
                 <p className="font-bold text-xs md:text-sm mb-3 text-white">
@@ -381,21 +408,24 @@ function FlipbookReaderModal({
             <div className="flex flex-col gap-2 w-full">
               <button
                 onClick={(e) => onDownloadPDF(e, story)}
-                className="w-full py-2.5 rounded-full bg-kidYellow text-[#5253A3] font-black text-xs shadow-md hover:scale-105 transition flex items-center justify-center gap-1.5"
+                className="w-full py-2.5 rounded-full bg-kidYellow text-[#5253A3] font-black text-xs shadow-md hover:scale-105 transition flex items-center justify-center gap-2"
               >
-                <FaFilePdf /> Save as PDF
+                <FaFilePdf size={13} />
+                <span>Save as PDF</span>
               </button>
               <button
                 onClick={(e) => onDownloadColoringBook(e, story)}
-                className="w-full py-2.5 rounded-full bg-white text-kidPink font-black text-xs shadow-md hover:scale-105 transition border-2 border-kidPink"
+                className="w-full py-2.5 rounded-full bg-white text-kidPink font-black text-xs shadow-md hover:scale-105 transition border-2 border-kidPink flex items-center justify-center gap-2"
               >
-                🖍️ Print Coloring Book
+                <FaPalette size={13} />
+                <span>Print Coloring Book</span>
               </button>
               <button
                 onClick={(e) => onShare(e, story)}
-                className="w-full py-2 rounded-full bg-white/20 text-white font-bold text-xs hover:bg-white/30 transition border border-white/30"
+                className="w-full py-2 rounded-full bg-white/20 text-white font-bold text-xs hover:bg-white/30 transition border border-white/30 flex items-center justify-center gap-2"
               >
-                🔗 Share Magic Link
+                <FaShareAlt size={12} />
+                <span>Share Magic Link</span>
               </button>
             </div>
           </div>
@@ -450,12 +480,12 @@ function GeneratedBooks({
   });
 
   const categories = [
-    { label: "All 🌟", value: "All" },
-    { label: "Funny 😂", value: "funny" },
-    { label: "Adventure 🗺️", value: "adventurous" },
-    { label: "Bedtime 🌙", value: "bedtime" },
-    { label: "Educational 🎓", value: "educational" },
-    { label: "Bilingual 🌍", value: "bilingual" },
+    { label: "All Stories", value: "All", icon: HiSparkles },
+    { label: "Funny", value: "funny", icon: FaSmile },
+    { label: "Adventure", value: "adventurous", icon: FaCompass },
+    { label: "Bedtime", value: "bedtime", icon: FaMoon },
+    { label: "Educational", value: "educational", icon: FaGraduationCap },
+    { label: "Bilingual", value: "bilingual", icon: FaGlobe },
   ];
 
   // Stop audio on unmount
@@ -464,6 +494,23 @@ function GeneratedBooks({
       window.speechSynthesis.cancel();
     };
   }, []);
+
+  // Normalize legacy stories from localStorage where only coverImage was stored
+  useEffect(() => {
+    if (generatedStories && generatedStories.length > 0) {
+      let changed = false;
+      const normalized = generatedStories.map((story) => {
+        if (!story.imageUrl && story.coverImage) {
+          changed = true;
+          return { ...story, imageUrl: story.coverImage };
+        }
+        return story;
+      });
+      if (changed) {
+        updateGeneratedStories(normalized);
+      }
+    }
+  }, [generatedStories]);
 
   // Filter & Sort Stories
   const filteredStories = generatedStories.filter((s) => {
@@ -587,7 +634,7 @@ function GeneratedBooks({
       s: story.subject,
       tx: story.text,
       et: story.englishText,
-      i: story.imageUrl,
+      i: story.imageUrl || story.coverImage,
       l: story.language,
     };
     const encoded = btoa(encodeURIComponent(JSON.stringify(shareData)));
@@ -723,7 +770,7 @@ function GeneratedBooks({
         <div style="padding: 60px; text-align: center; background: #CAD3FF; color: #5253A3; border-bottom: 10px solid #fff;">
           <h1 style="font-size: 48px; margin-bottom: 10px;">${story.title}</h1>
           ${story.childName ? `<h2 style="font-size: 24px; color: #FF4E98;">Starring: ${story.childName}</h2>` : ""}
-          <img src="${story.imageUrl}" style="width: 300px; height: 300px; object-fit: cover; border-radius: 30px; border: 8px solid white; margin-top: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.1);" />
+          <img src="${story.imageUrl || story.coverImage || defaultCoverFallback}" style="width: 300px; height: 300px; object-fit: cover; border-radius: 30px; border: 8px solid white; margin-top: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.1);" />
         </div>
     `;
 
@@ -784,7 +831,7 @@ function GeneratedBooks({
 
           <h1 className="text-4xl md:text-6xl font-black text-[#5253A3] flex items-center justify-center gap-3 drop-shadow-sm">
             <span>Magical Story Library</span>
-            <span className="animate-bounce">📚</span>
+            <HiBookOpen className="text-kidPink text-4xl md:text-5xl inline animate-bounce" />
           </h1>
           <p className="text-lg md:text-xl text-[#5253A3]/85 font-bold max-w-2xl mx-auto mt-2">
             Read online with 3D flipbook animation, listen with interactive audiobooks, or print coloring pages!
@@ -835,19 +882,29 @@ function GeneratedBooks({
 
           {/* Category Filter Pills */}
           <div className="flex flex-wrap gap-2 pt-2 border-t border-[#5253A3]/10">
-            {categories.map((cat) => (
-              <button
-                key={cat.value}
-                onClick={() => setSelectedCategory(cat.value)}
-                className={`px-4 py-1.5 rounded-full text-xs font-black transition shadow-sm border ${
-                  selectedCategory === cat.value
-                    ? "bg-[#5253A3] text-white border-[#5253A3] scale-105"
-                    : "bg-white/80 text-[#5253A3] border-white hover:bg-white"
-                }`}
-              >
-                {cat.label}
-              </button>
-            ))}
+            {categories.map((cat) => {
+              const CatIcon = cat.icon;
+              return (
+                <button
+                  key={cat.value}
+                  onClick={() => setSelectedCategory(cat.value)}
+                  className={`px-4 py-2 rounded-full text-xs font-black transition-all shadow-sm border flex items-center gap-1.5 ${
+                    selectedCategory === cat.value
+                      ? "bg-[#5253A3] text-white border-[#5253A3] scale-105"
+                      : "bg-white/80 text-[#5253A3] border-white hover:bg-white"
+                  }`}
+                >
+                  <CatIcon
+                    className={
+                      selectedCategory === cat.value
+                        ? "text-kidYellow text-sm"
+                        : "text-kidPink text-sm"
+                    }
+                  />
+                  <span>{cat.label}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
 
@@ -869,10 +926,11 @@ function GeneratedBooks({
                     e.stopPropagation();
                     handleDeleteStory(story);
                   }}
-                  className="absolute top-4 right-4 z-20 w-8 h-8 rounded-full bg-white/80 hover:bg-red-500 hover:text-white text-gray-400 flex items-center justify-center transition shadow-md"
+                  className="absolute top-3 right-3 z-20 w-9 h-9 rounded-full bg-white text-rose-500 hover:bg-rose-500 hover:text-white border border-rose-100 flex items-center justify-center transition-all duration-200 shadow-md hover:scale-110 active:scale-95"
                   title="Delete Book"
+                  aria-label="Delete Book"
                 >
-                  <FaTrash size={12} />
+                  <FaTrash size={13} />
                 </button>
 
                 {/* Book Cover Thumbnail with 3D Spine Illusion */}
@@ -881,7 +939,8 @@ function GeneratedBooks({
                   className="cursor-pointer relative aspect-[3/4] w-full rounded-2xl overflow-hidden shadow-md border-l-8 border-[#a04865] mb-4 group-hover:scale-[1.02] transition-transform duration-300 bg-gray-100"
                 >
                   <ImageWithSkeleton
-                    src={story.imageUrl}
+                    src={story.imageUrl || story.coverImage || defaultCoverFallback}
+                    fallbackSrc={defaultCoverFallback}
                     alt={story.title}
                     containerClassName="w-full h-full"
                     className="w-full h-full object-cover"
@@ -891,7 +950,7 @@ function GeneratedBooks({
 
                   {/* Hover Read Overlay */}
                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-2 text-white font-black text-sm">
-                    <HiBookOpen className="text-2xl" />
+                    <HiBookOpen className="text-2xl text-yellow-300" />
                     <span>Open Reader</span>
                   </div>
                 </div>
@@ -900,8 +959,9 @@ function GeneratedBooks({
                 <div className="flex-1 flex flex-col justify-between">
                   <div>
                     {story.childName && (
-                      <span className="text-[10px] font-black uppercase tracking-wider text-kidPink bg-pink-50 px-2.5 py-0.5 rounded-full inline-block mb-1.5 border border-pink-200">
-                        ⭐ Starring: {story.childName}
+                      <span className="text-[10px] font-black uppercase tracking-wider text-kidPink bg-pink-50 px-2.5 py-0.5 rounded-full inline-flex items-center gap-1 mb-1.5 border border-pink-200">
+                        <FaStar className="text-amber-400 text-xs" />
+                        <span>Starring: {story.childName}</span>
                       </span>
                     )}
                     <h3
@@ -914,16 +974,19 @@ function GeneratedBooks({
 
                   {/* Badges */}
                   <div className="flex flex-wrap gap-1.5 mb-4">
-                    <span className="text-[10px] font-bold bg-indigo-50 text-indigo-700 px-2.5 py-0.5 rounded-full capitalize">
-                      📖 {story.storyType}
+                    <span className="text-[10px] font-bold bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-full capitalize inline-flex items-center gap-1 border border-indigo-100">
+                      <HiBookOpen className="text-xs text-indigo-600" />
+                      <span>{story.storyType}</span>
                     </span>
                     {story.storyTone && (
-                      <span className="text-[10px] font-bold bg-pink-50 text-pink-700 px-2.5 py-0.5 rounded-full capitalize">
-                        🎭 {story.storyTone}
+                      <span className="text-[10px] font-bold bg-pink-50 text-pink-700 px-2.5 py-1 rounded-full capitalize inline-flex items-center gap-1 border border-pink-100">
+                        <FaTheaterMasks className="text-xs text-pink-600" />
+                        <span>{story.storyTone}</span>
                       </span>
                     )}
-                    <span className="text-[10px] font-bold bg-amber-50 text-amber-700 px-2.5 py-0.5 rounded-full">
-                      🌍 {story.language || "English"}
+                    <span className="text-[10px] font-bold bg-amber-50 text-amber-800 px-2.5 py-1 rounded-full inline-flex items-center gap-1 border border-amber-200">
+                      <FaGlobe className="text-xs text-amber-600" />
+                      <span>{story.language || "English"}</span>
                     </span>
                   </div>
 
@@ -931,36 +994,38 @@ function GeneratedBooks({
                   <div className="flex flex-col gap-2 pt-2 border-t border-gray-100">
                     <button
                       onClick={() => setActiveReadingStory(story)}
-                      className="w-full py-2.5 bg-gradient-to-r from-[#5253A3] to-[#43448f] hover:from-[#43448f] hover:to-[#38397a] text-white rounded-full font-black text-xs shadow-md transition flex items-center justify-center gap-1.5"
+                      className="w-full py-2.5 bg-gradient-to-r from-[#5253A3] to-[#43448f] hover:from-[#43448f] hover:to-[#38397a] text-white rounded-full font-black text-xs shadow-md transition flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-95"
                     >
-                      <HiBookOpen size={14} />
-                      <span>Read Flipbook 📖</span>
+                      <HiBookOpen className="text-base text-yellow-300" />
+                      <span>Read Flipbook</span>
+                      <HiSparkles className="text-xs text-pink-300" />
                     </button>
 
                     <div className="grid grid-cols-3 gap-1.5">
                       <button
                         onClick={() => handlePlayAudiobook(story)}
-                        className="py-1.5 rounded-xl bg-kidYellow/20 hover:bg-kidYellow text-[#5253A3] font-bold text-[11px] transition flex items-center justify-center gap-1"
+                        className="py-1.5 rounded-xl bg-amber-100/70 hover:bg-kidYellow text-[#5253A3] font-bold text-[11px] transition flex items-center justify-center gap-1 border border-amber-200/50"
                         title="Listen to Audiobook"
                       >
-                        <FaVolumeUp size={11} />
+                        <FaHeadphones size={12} className="text-[#5253A3]" />
                         <span>Listen</span>
                       </button>
 
                       <button
                         onClick={(e) => handleDownloadColoringBook(e, story)}
-                        className="py-1.5 rounded-xl bg-pink-50 hover:bg-kidPink hover:text-white text-kidPink font-bold text-[11px] transition flex items-center justify-center gap-1"
+                        className="py-1.5 rounded-xl bg-pink-50 hover:bg-kidPink hover:text-white text-kidPink font-bold text-[11px] transition flex items-center justify-center gap-1 border border-pink-200/50 group"
                         title="Print Coloring Book"
                       >
-                        <span>🖍️ Color</span>
+                        <FaPalette size={11} />
+                        <span>Color</span>
                       </button>
 
                       <button
                         onClick={(e) => handleShareMagicLink(e, story)}
-                        className="py-1.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-600 font-bold text-[11px] transition flex items-center justify-center"
+                        className="py-1.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-[11px] transition flex items-center justify-center border border-gray-200/50"
                         title="Share Story Link"
                       >
-                        <FaShareAlt size={10} />
+                        <FaShareAlt size={11} />
                       </button>
                     </div>
                   </div>
@@ -975,7 +1040,7 @@ function GeneratedBooks({
             animate={{ opacity: 1, y: 0 }}
             className="text-center mt-12 bg-white/70 backdrop-blur-xl p-12 md:p-16 rounded-[3rem] border-4 border-white shadow-2xl max-w-xl mx-auto flex flex-col items-center"
           >
-            <span className="text-6xl mb-4 animate-bounce">🏰</span>
+            <HiBookOpen className="text-6xl text-[#5253A3] mb-4 animate-bounce" />
             <h2 className="text-3xl font-black text-[#5253A3] mb-2">
               No matching stories found!
             </h2>
@@ -1023,43 +1088,47 @@ function GeneratedBooks({
           className="fixed bottom-6 inset-x-4 max-w-2xl mx-auto z-40 bg-[#5253A3] text-white rounded-full p-3 px-6 shadow-2xl border-4 border-white flex items-center justify-between gap-4"
         >
           <div className="flex items-center gap-3 overflow-hidden">
-            <span className="text-2xl animate-spin" style={{ animationDuration: "4s" }}>
-              🎵
-            </span>
+            <div className="w-10 h-10 rounded-full bg-white/15 flex items-center justify-center text-kidYellow shrink-0 shadow-inner">
+              <FaHeadphones className="text-xl" />
+            </div>
             <div className="overflow-hidden">
               <h4 className="text-sm font-black truncate">{audioState.storyTitle}</h4>
-              <p className="text-[11px] text-yellow-300 font-bold flex items-center gap-2">
+              <div className="text-[11px] text-yellow-300 font-bold flex items-center gap-2">
                 <span>Reading Page {audioState.currentPage} of {audioState.totalPages}</span>
-                <span className="animate-pulse">🎶</span>
-              </p>
+                <span className="flex items-center gap-0.5 ml-1">
+                  <span className="w-1 h-3 bg-kidYellow rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
+                  <span className="w-1 h-4 bg-kidYellow rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
+                  <span className="w-1 h-2 bg-kidYellow rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
+                </span>
+              </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             {audioState.isPaused ? (
               <button
                 onClick={resumeAudiobook}
-                className="w-9 h-9 rounded-full bg-kidYellow text-[#5253A3] flex items-center justify-center font-black shadow hover:scale-105 transition"
+                className="w-10 h-10 rounded-full bg-kidYellow text-[#5253A3] flex items-center justify-center font-black shadow-lg hover:scale-110 active:scale-95 transition"
                 title="Resume"
               >
-                <FaPlay size={12} className="ml-0.5" />
+                <FaPlay size={14} className="ml-0.5 text-[#5253A3]" />
               </button>
             ) : (
               <button
                 onClick={pauseAudiobook}
-                className="w-9 h-9 rounded-full bg-white text-[#5253A3] flex items-center justify-center font-black shadow hover:scale-105 transition"
+                className="w-10 h-10 rounded-full bg-white text-[#5253A3] flex items-center justify-center font-black shadow-lg hover:scale-110 active:scale-95 transition"
                 title="Pause"
               >
-                <FaPause size={12} />
+                <FaPause size={14} className="text-[#5253A3]" />
               </button>
             )}
 
             <button
               onClick={stopAudiobook}
-              className="w-9 h-9 rounded-full bg-red-400 hover:bg-red-500 text-white flex items-center justify-center font-black shadow transition"
+              className="w-10 h-10 rounded-full bg-rose-500 hover:bg-rose-600 text-white flex items-center justify-center font-black shadow-lg hover:scale-110 active:scale-95 transition"
               title="Stop"
             >
-              <FaStop size={11} />
+              <FaStop size={13} className="text-white" />
             </button>
           </div>
         </motion.div>
