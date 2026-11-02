@@ -1,7 +1,9 @@
 import React, { useRef, useState } from "react";
 import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
-import { HiSparkles, HiBookOpen, HiVolumeUp, HiColorSwatch } from "react-icons/hi";
-import { FaMagic, FaStar } from "react-icons/fa";
+import { HiSparkles, HiBookOpen, HiVolumeUp, HiColorSwatch, HiShieldCheck } from "react-icons/hi";
+import { FaMagic, FaStar, FaGlobe, FaPrint } from "react-icons/fa";
+import { NavLink } from "react-router-dom";
+import confetti from "canvas-confetti";
 import useSound from "use-sound";
 
 // Interactive 3D Tilt Card Component with Parallax Depth and Specular Glare
@@ -146,6 +148,17 @@ const AboutSection = () => {
     "https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3",
     { volume: 0.25 }
   );
+
+  const triggerConfetti = (e) => {
+    if (e) e.stopPropagation();
+    playPop();
+    confetti({
+      particleCount: 120,
+      spread: 80,
+      origin: { y: 0.65 },
+      colors: ["#FF4E98", "#FFD700", "#00D2FF", "#98FB98", "#FFFFFF"],
+    });
+  };
 
   const steps = [
     {
@@ -293,38 +306,135 @@ const AboutSection = () => {
           ))}
         </div>
 
-        {/* Bottom Callout Banner */}
+        {/* Upgraded Magical Creator Showcase Banner */}
         <motion.div
-          initial={{ opacity: 0, y: 30 }}
+          initial={{ opacity: 0, y: 35 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="mt-24 p-10 md:p-14 bg-gradient-to-br from-[#5253A3] to-[#40418c] rounded-[3rem] text-white text-center relative overflow-hidden shadow-2xl border-4 border-white"
+          transition={{ duration: 0.7 }}
+          className="mt-28 p-8 md:p-14 bg-gradient-to-br from-[#4c4da1] via-[#5253A3] to-[#393a80] rounded-[3.5rem] text-white text-center relative overflow-hidden shadow-[0_25px_60px_-15px_rgba(82,83,163,0.45)] border-4 border-white"
         >
-          {/* Subtle Ambient Glow */}
-          <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-pink-400/20 via-blue-400/10 to-transparent pointer-events-none"></div>
+          {/* Ambient Colorful Blobs for Aurora Effect */}
+          <div className="absolute -top-24 -left-20 w-80 h-80 bg-[#FF4E98] rounded-full mix-blend-screen filter blur-3xl opacity-25 animate-blob"></div>
+          <div className="absolute top-1/2 -right-20 w-80 h-80 bg-[#00D2FF] rounded-full mix-blend-screen filter blur-3xl opacity-25 animate-blob animation-delay-2000"></div>
+          <div className="absolute -bottom-20 left-1/3 w-80 h-80 bg-kidYellow rounded-full mix-blend-screen filter blur-3xl opacity-20 animate-blob animation-delay-4000"></div>
 
-          <span className="text-4xl mb-4 inline-block animate-bounce">🎉</span>
-          <h3 className="text-3xl md:text-5xl font-black mb-4 relative z-10 drop-shadow-sm">
+          {/* Interactive Floating Confetti Popper Trigger */}
+          <motion.button
+            whileHover={{ scale: 1.1, rotate: [0, -10, 10, 0] }}
+            whileTap={{ scale: 0.95 }}
+            onClick={triggerConfetti}
+            className="inline-flex items-center gap-2 bg-white/20 hover:bg-white/30 backdrop-blur-md px-6 py-2.5 rounded-full border-2 border-white/60 text-yellow-300 font-black text-sm md:text-base shadow-lg mb-6 cursor-pointer relative z-10 transition-colors"
+          >
+            <span className="text-2xl animate-bounce">🎉</span>
+            <span>Tap For Magic Confetti! ✨</span>
+          </motion.button>
+
+          <h3 className="text-4xl md:text-6xl font-black mb-4 relative z-10 drop-shadow-md">
             More than just a book site.
           </h3>
-          <p className="text-lg md:text-2xl text-white/90 max-w-2xl mx-auto mb-8 relative z-10 font-bold leading-relaxed">
-            KiddoTales is a companion for parents and an infinite playground for
-            little creators. Bond, learn, and build memories that last forever!
+          <p className="text-lg md:text-2xl text-white/90 max-w-3xl mx-auto mb-10 relative z-10 font-bold leading-relaxed">
+            KiddoTales is a bedtime companion for parents and an infinite playground
+            for little dreamers. Bond, laugh, learn, and weave unforgettable adventures
+            that last a lifetime!
           </p>
 
-          <div className="flex flex-wrap justify-center gap-3 md:gap-4 relative z-10">
-            <span className="px-6 py-2.5 bg-white/20 hover:bg-white/30 rounded-full text-sm md:text-base font-extrabold backdrop-blur-md border border-white/40 shadow-sm transition-transform hover:scale-105">
-              🛡️ 100% Ad-Free
-            </span>
-            <span className="px-6 py-2.5 bg-white/20 hover:bg-white/30 rounded-full text-sm md:text-base font-extrabold backdrop-blur-md border border-white/40 shadow-sm transition-transform hover:scale-105">
-              🧸 Kid-Safe & Verified
-            </span>
-            <span className="px-6 py-2.5 bg-white/20 hover:bg-white/30 rounded-full text-sm md:text-base font-extrabold backdrop-blur-md border border-white/40 shadow-sm transition-transform hover:scale-105">
-              ✨ Powered by Google Gemini AI
-            </span>
-            <span className="px-6 py-2.5 bg-white/20 hover:bg-white/30 rounded-full text-sm md:text-base font-extrabold backdrop-blur-md border border-white/40 shadow-sm transition-transform hover:scale-105">
-              🖍️ Free Printable Coloring Pages
-            </span>
+          {/* 4 Interactive Bento Power-Up Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-10 relative z-10">
+            <motion.div
+              whileHover={{ y: -8, scale: 1.03 }}
+              className="bg-white/10 hover:bg-white/20 backdrop-blur-md p-6 rounded-3xl border-2 border-white/30 hover:border-yellow-300 transition-all shadow-md text-left flex flex-col justify-between"
+            >
+              <div>
+                <div className="w-12 h-12 rounded-2xl bg-yellow-400/30 flex items-center justify-center text-yellow-300 text-2xl mb-4 border border-yellow-300/40">
+                  <HiShieldCheck />
+                </div>
+                <h4 className="text-xl font-black mb-2 text-white">100% Ad-Free</h4>
+                <p className="text-sm text-white/80 font-medium leading-relaxed">
+                  Zero tracking or popups. A safe digital sanctuary built strictly for children.
+                </p>
+              </div>
+              <span className="mt-4 inline-block text-xs font-black uppercase tracking-wider text-yellow-300">
+                🛡️ Verified Safe
+              </span>
+            </motion.div>
+
+            <motion.div
+              whileHover={{ y: -8, scale: 1.03 }}
+              className="bg-white/10 hover:bg-white/20 backdrop-blur-md p-6 rounded-3xl border-2 border-white/30 hover:border-pink-300 transition-all shadow-md text-left flex flex-col justify-between"
+            >
+              <div>
+                <div className="w-12 h-12 rounded-2xl bg-pink-400/30 flex items-center justify-center text-pink-300 text-2xl mb-4 border border-pink-300/40">
+                  🧸
+                </div>
+                <h4 className="text-xl font-black mb-2 text-white">Age-Adaptive</h4>
+                <p className="text-sm text-white/80 font-medium leading-relaxed">
+                  Smart vocabulary tuned precisely from toddlers (0-2) to school ages (5-8).
+                </p>
+              </div>
+              <span className="mt-4 inline-block text-xs font-black uppercase tracking-wider text-pink-300">
+                📖 Smart Learning
+              </span>
+            </motion.div>
+
+            <motion.div
+              whileHover={{ y: -8, scale: 1.03 }}
+              className="bg-white/10 hover:bg-white/20 backdrop-blur-md p-6 rounded-3xl border-2 border-white/30 hover:border-cyan-300 transition-all shadow-md text-left flex flex-col justify-between"
+            >
+              <div>
+                <div className="w-12 h-12 rounded-2xl bg-cyan-400/30 flex items-center justify-center text-cyan-300 text-2xl mb-4 border border-cyan-300/40">
+                  <FaGlobe />
+                </div>
+                <h4 className="text-xl font-black mb-2 text-white">6 Languages</h4>
+                <p className="text-sm text-white/80 font-medium leading-relaxed">
+                  Bilingual story reading and audio narration in English, Spanish, French, and more.
+                </p>
+              </div>
+              <span className="mt-4 inline-block text-xs font-black uppercase tracking-wider text-cyan-300">
+                🌍 Global Stories
+              </span>
+            </motion.div>
+
+            <motion.div
+              whileHover={{ y: -8, scale: 1.03 }}
+              className="bg-white/10 hover:bg-white/20 backdrop-blur-md p-6 rounded-3xl border-2 border-white/30 hover:border-emerald-300 transition-all shadow-md text-left flex flex-col justify-between"
+            >
+              <div>
+                <div className="w-12 h-12 rounded-2xl bg-emerald-400/30 flex items-center justify-center text-emerald-300 text-2xl mb-4 border border-emerald-300/40">
+                  <FaPrint />
+                </div>
+                <h4 className="text-xl font-black mb-2 text-white">Printable Art</h4>
+                <p className="text-sm text-white/80 font-medium leading-relaxed">
+                  Generate instant PDF coloring books so your kids can bring stories to life with crayons!
+                </p>
+              </div>
+              <span className="mt-4 inline-block text-xs font-black uppercase tracking-wider text-emerald-300">
+                🖍️ Hands-On Art
+              </span>
+            </motion.div>
+          </div>
+
+          {/* Interactive CTA Buttons */}
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 relative z-10 pt-4">
+            <NavLink to="/create">
+              <motion.button
+                whileHover={{ scale: 1.06, backgroundColor: "#FFD700" }}
+                whileTap={{ scale: 0.95 }}
+                className="px-10 py-4 bg-kidYellow text-[#5253A3] text-xl font-black rounded-full shadow-2xl border-4 border-white transition-all flex items-center gap-2"
+              >
+                <span>Start Creating Magic</span>
+                <HiSparkles className="text-2xl text-[#FF4E98]" />
+              </motion.button>
+            </NavLink>
+            <NavLink to="/explore">
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="px-8 py-4 bg-white/20 hover:bg-white/30 text-white text-xl font-extrabold rounded-full border-4 border-white/60 shadow-xl backdrop-blur-md transition-colors"
+              >
+                Browse Story Library 📚
+              </motion.button>
+            </NavLink>
           </div>
         </motion.div>
       </div>
