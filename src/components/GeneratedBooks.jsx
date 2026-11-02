@@ -1145,27 +1145,30 @@ function GeneratedBooks({
             {audioState.isPaused ? (
               <button
                 onClick={resumeAudiobook}
-                className="w-10 h-10 rounded-full bg-kidYellow text-[#5253A3] flex items-center justify-center font-black shadow-lg hover:scale-110 active:scale-95 transition"
-                title="Resume"
+                className="px-4 py-2 rounded-full bg-kidYellow hover:bg-yellow-300 text-[#5253A3] font-black text-xs shadow-lg hover:scale-105 active:scale-95 transition flex items-center gap-2 border-2 border-white"
+                title="Resume Reading"
               >
-                <FaPlay size={14} className="ml-0.5 text-[#5253A3]" />
+                <FaPlay className="text-sm text-[#5253A3]" />
+                <span className="font-black">Resume</span>
               </button>
             ) : (
               <button
                 onClick={pauseAudiobook}
-                className="w-10 h-10 rounded-full bg-white text-[#5253A3] flex items-center justify-center font-black shadow-lg hover:scale-110 active:scale-95 transition"
-                title="Pause"
+                className="px-4 py-2 rounded-full bg-white hover:bg-gray-100 text-[#5253A3] font-black text-xs shadow-lg hover:scale-105 active:scale-95 transition flex items-center gap-2 border-2 border-[#5253A3]/20"
+                title="Pause Audiobook"
               >
-                <FaPause size={14} className="text-[#5253A3]" />
+                <FaPause className="text-sm text-[#5253A3]" />
+                <span className="font-black">Pause</span>
               </button>
             )}
 
             <button
               onClick={stopAudiobook}
-              className="w-10 h-10 rounded-full bg-rose-500 hover:bg-rose-600 text-white flex items-center justify-center font-black shadow-lg hover:scale-110 active:scale-95 transition"
-              title="Stop"
+              className="px-4 py-2 rounded-full bg-rose-500 hover:bg-rose-600 text-white font-black text-xs shadow-lg hover:scale-105 active:scale-95 transition flex items-center gap-2 border-2 border-white"
+              title="Stop Audiobook"
             >
-              <FaStop size={13} className="text-white" />
+              <FaStop className="text-xs text-white" />
+              <span className="font-black">Stop</span>
             </button>
           </div>
         </motion.div>
