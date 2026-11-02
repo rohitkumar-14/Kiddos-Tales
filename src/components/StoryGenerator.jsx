@@ -817,7 +817,7 @@ Return ONLY valid JSON.
                     <label className="block text-xl font-black text-[#5253A3] mb-4">
                       Book Format 📚
                     </label>
-                    <div className="flex flex-wrap justify-center sm:justify-start gap-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-6 w-full">
                       {storyTypes.map((type) => (
                         <SelectableCardWithSkeleton
                           key={type.value}
@@ -841,7 +841,7 @@ Return ONLY valid JSON.
                     <label className="block text-xl font-black text-[#5253A3] mb-4">
                       Target Age Group 🧸
                     </label>
-                    <div className="flex flex-wrap justify-center sm:justify-start gap-5">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-5 w-full">
                       {ageGroups.map((group) => (
                         <SelectableCardWithSkeleton
                           key={group.value}
@@ -886,7 +886,7 @@ Return ONLY valid JSON.
                     <label className="block text-xl font-black text-[#5253A3] mb-4">
                       Story Tone 🎭
                     </label>
-                    <div className="flex flex-wrap justify-center sm:justify-start gap-4">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 md:gap-4 w-full">
                       {storyTones.map((tone) => (
                         <SelectableCardWithSkeleton
                           key={tone.value}
@@ -910,7 +910,7 @@ Return ONLY valid JSON.
                     <label className="block text-xl font-black text-[#5253A3] mb-4">
                       Core Theme 🌟
                     </label>
-                    <div className="flex flex-wrap justify-center sm:justify-start gap-4">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 md:gap-4 w-full">
                       {storyThemes.map((theme) => (
                         <SelectableCardWithSkeleton
                           key={theme.value}

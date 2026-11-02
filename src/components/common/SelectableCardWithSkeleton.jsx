@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 /**
  * SelectableCardWithSkeleton provides an animated skeleton placeholder
  * while the card image loads, then smoothly reveals the image.
- * Maintains full interactive animations (hover, tap, active ring, grayscale toggle).
+ * Uses fluid responsive grid-friendly sizing to prevent layout overlap.
  */
 const SelectableCardWithSkeleton = ({
   label,
@@ -14,6 +14,7 @@ const SelectableCardWithSkeleton = ({
   size = "standard", // "large" | "standard"
   ringColor = "ring-kidPink",
   placeholderIcon = "✨",
+  className = "",
 }) => {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
@@ -21,31 +22,38 @@ const SelectableCardWithSkeleton = ({
   const isLarge = size === "large";
 
   const sizeClasses = isLarge
-    ? "w-[250px] h-[350px] rounded-[3rem]"
-    : "w-[180px] h-[250px] rounded-3xl";
+    ? "w-full aspect-[3/4] max-h-[290px] rounded-[2rem]"
+    : "w-full aspect-[3/4] max-h-[220px] rounded-2xl";
 
   const ringClasses = isSelected
     ? isLarge
-      ? `ring-[12px] ${ringColor} ring-offset-8 ring-offset-[#CAD3FF] grayscale-0 scale-105`
-      : `ring-8 ${ringColor} ring-offset-4 ring-offset-[#CAD3FF] grayscale-0`
-    : "grayscale hover:grayscale-[50%]";
+      ? `ring-4 sm:ring-6 ${ringColor} ring-offset-2 ring-offset-white/90 grayscale-0 shadow-2xl scale-[1.02]`
+      : `ring-4 ${ringColor} ring-offset-2 ring-offset-white/90 grayscale-0 shadow-xl scale-[1.02]`
+    : "grayscale hover:grayscale-[30%] opacity-85 hover:opacity-100 hover:scale-[1.02]";
 
   return (
     <motion.div
-      whileHover={{ scale: 1.05, y: -5 }}
-      whileTap={{ scale: 0.95 }}
+      whileHover={{ y: -4 }}
+      whileTap={{ scale: 0.97 }}
       onClick={onClick}
       role="button"
       tabIndex={0}
       aria-pressed={isSelected}
-      className={`relative cursor-pointer overflow-hidden flex items-end justify-center shadow-xl transition-all duration-500 select-none ${sizeClasses} ${ringClasses}`}
+      className={`relative cursor-pointer overflow-hidden flex items-end justify-center shadow-md transition-all duration-300 select-none mx-auto ${sizeClasses} ${ringClasses} ${className}`}
     >
+      {/* Selected Indicator Badge */}
+      {isSelected && (
+        <div className="absolute top-3 right-3 z-30 w-7 h-7 rounded-full bg-white shadow-md flex items-center justify-center text-[#5253A3] font-black text-xs border border-gray-200">
+          ✓
+        </div>
+      )}
+
       {/* Skeleton Shimmer Overlay while loading */}
       {!imageLoaded && !imageError && (
         <div className="absolute inset-0 z-10 bg-gradient-to-br from-indigo-100 via-pink-100 to-amber-100 animate-shimmer flex flex-col items-center justify-center">
           <div className="flex flex-col items-center justify-center opacity-50 animate-pulse">
-            <span className="text-4xl mb-2">{placeholderIcon}</span>
-            <span className="text-xs font-bold text-[#5253A3] uppercase tracking-wider">
+            <span className="text-3xl mb-1">{placeholderIcon}</span>
+            <span className="text-[10px] font-bold text-[#5253A3] uppercase tracking-wider">
               Loading...
             </span>
           </div>
@@ -54,8 +62,8 @@ const SelectableCardWithSkeleton = ({
 
       {/* Error Fallback */}
       {imageError ? (
-        <div className="absolute inset-0 bg-gradient-to-br from-purple-200 to-pink-200 flex flex-col items-center justify-center p-4 text-center">
-          <span className="text-4xl mb-2">{placeholderIcon}</span>
+        <div className="absolute inset-0 bg-gradient-to-br from-purple-200 to-pink-200 flex flex-col items-center justify-center p-3 text-center">
+          <span className="text-3xl mb-1">{placeholderIcon}</span>
           <span className="text-xs font-bold text-[#5253A3]">{label}</span>
         </div>
       ) : (
@@ -67,18 +75,21 @@ const SelectableCardWithSkeleton = ({
           decoding="async"
           onLoad={() => setImageLoaded(true)}
           onError={() => setImageError(true)}
-          className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-700 ease-in-out ${
+          className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ease-in-out ${
             imageLoaded ? "opacity-100" : "opacity-0"
           }`}
         />
       )}
 
+      {/* Subtle bottom shadow gradient to make label readable */}
+      <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/60 to-transparent pointer-events-none z-10" />
+
       {/* Label Badge */}
       <span
-        className={`relative z-20 font-black text-white text-center backdrop-blur-md shadow-lg border-2 border-white/30 transition-all ${
+        className={`relative z-20 font-black text-white text-center backdrop-blur-md shadow-md border border-white/40 transition-all truncate max-w-[90%] ${
           isLarge
-            ? "text-lg bg-black/50 px-6 py-2 rounded-full mb-6"
-            : "text-lg font-extrabold bg-black/40 px-3 py-1 rounded-full mb-4"
+            ? "text-sm sm:text-base bg-black/50 px-4 py-1.5 rounded-full mb-3"
+            : "text-xs sm:text-sm font-extrabold bg-black/50 px-3 py-1 rounded-full mb-2.5"
         }`}
       >
         {label}
