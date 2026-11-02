@@ -4,24 +4,25 @@ import { motion } from "framer-motion";
 import useSound from 'use-sound';
 import toast from "react-hot-toast";
 import { HiSparkles } from "react-icons/hi";
-import storyBook from "../assets/story.png";
-import bedStory from "../assets/bedstory.png";
-import educationalStory from "../assets/educational.png";
-import twoAge from "../assets/02Years.png";
-import fiveAge from "../assets/35Years.png";
-import eightAge from "../assets/58Years.png";
+import storyBook from "../assets/story.webp";
+import bedStory from "../assets/bedstory.webp";
+import educationalStory from "../assets/educational.webp";
+import twoAge from "../assets/02Years.webp";
+import fiveAge from "../assets/35Years.webp";
+import eightAge from "../assets/58Years.webp";
 import Loader from "./Loader";
 import Popup from "./Popup";
-import Adventurous from "../assets/Adventurous.jpg"
-import Exciting from "../assets/Exciting.avif"
-import Funny from "../assets/Funny.jpg"
-import Magical from "../assets/Magical.jpg"
-import Calm from "../assets/calm.avif"
-import Friendship from "../assets/Friendship.avif"
-import Bravery from "../assets/Bravery.avif"
-import Discovery from "../assets/Discovery.avif"
-import Nature from "../assets/Nature.avif"
-import Family from "../assets/Family.avif"
+import Adventurous from "../assets/Adventurous.webp";
+import Exciting from "../assets/Exciting.avif";
+import Funny from "../assets/Funny.webp";
+import Magical from "../assets/Magical.webp";
+import Calm from "../assets/calm.avif";
+import Friendship from "../assets/Friendship.avif";
+import Bravery from "../assets/Bravery.avif";
+import Discovery from "../assets/Discovery.avif";
+import Nature from "../assets/Nature.avif";
+import Family from "../assets/Family.avif";
+import SelectableCardWithSkeleton from "./common/SelectableCardWithSkeleton";
 import { demoStories } from "../data/demoStories";
 
 const StoryGenerator = ({ updateGeneratedStories, user, spendCredit, refillCredits, unlockAchievement }) => {
@@ -276,9 +277,9 @@ Return ONLY valid JSON.
   };
 
   const storyTypes = [
-    { value: "storybook", label: "Story Book", imageUrl: storyBook },
-    { value: "bed story", label: "Bed Story", imageUrl: bedStory },
-    { value: "educational", label: "Educational", imageUrl: educationalStory },
+    { value: "storybook", label: "Story Book", imageUrl: storyBook, icon: "📖" },
+    { value: "bed story", label: "Bed Story", imageUrl: bedStory, icon: "🌙" },
+    { value: "educational", label: "Educational", imageUrl: educationalStory, icon: "🎓" },
   ];
 
   const handleStorySelect = (type) => {
@@ -286,9 +287,9 @@ Return ONLY valid JSON.
   };
 
   const ageGroups = [
-    { value: "0-2", label: "0-2 years", imageUrl: twoAge },
-    { value: "3-5", label: "3-5 years", imageUrl: fiveAge },
-    { value: "5-8", label: "5-8 years", imageUrl: eightAge },
+    { value: "0-2", label: "0-2 years", imageUrl: twoAge, icon: "🍼" },
+    { value: "3-5", label: "3-5 years", imageUrl: fiveAge, icon: "🧸" },
+    { value: "5-8", label: "5-8 years", imageUrl: eightAge, icon: "🚀" },
   ];
 
   const handleAgeSelect = (group) => {
@@ -296,11 +297,11 @@ Return ONLY valid JSON.
   };
 
   const storyTones = [
-    { value: "funny", label: "Funny", imageUrl: Funny },
-    { value: "adventurous", label: "Adventurous", imageUrl: Adventurous },
-    { value: "calm", label: "Calm", imageUrl: Calm },
-    { value: "exciting", label: "Exciting", imageUrl: Exciting },
-    { value: "magical", label: "Magical", imageUrl: Magical },
+    { value: "funny", label: "Funny", imageUrl: Funny, icon: "😂" },
+    { value: "adventurous", label: "Adventurous", imageUrl: Adventurous, icon: "🗺️" },
+    { value: "calm", label: "Calm", imageUrl: Calm, icon: "☁️" },
+    { value: "exciting", label: "Exciting", imageUrl: Exciting, icon: "⚡" },
+    { value: "magical", label: "Magical", imageUrl: Magical, icon: "🪄" },
   ];
 
   const handleToneSelect = (tone) => {
@@ -308,11 +309,11 @@ Return ONLY valid JSON.
   };
 
   const storyThemes = [
-    { value: "friendship", label: "Friendship", imageUrl: Friendship },
-    { value: "bravery", label: "Bravery", imageUrl: Bravery },
-    { value: "discovery", label: "Discovery", imageUrl: Discovery },
-    { value: "nature", label: "Nature", imageUrl: Nature },
-    { value: "family", label: "Family", imageUrl: Family },
+    { value: "friendship", label: "Friendship", imageUrl: Friendship, icon: "🤝" },
+    { value: "bravery", label: "Bravery", imageUrl: Bravery, icon: "🦁" },
+    { value: "discovery", label: "Discovery", imageUrl: Discovery, icon: "🧭" },
+    { value: "nature", label: "Nature", imageUrl: Nature, icon: "🌲" },
+    { value: "family", label: "Family", imageUrl: Family, icon: "🏡" },
   ];
 
   const handleThemeSelect = (theme) => {
@@ -483,26 +484,16 @@ Return ONLY valid JSON.
           </h1>
           <div className="flex flex-wrap justify-center gap-10">
             {storyTypes.map((type) => (
-              <motion.div
-                whileHover={{ scale: 1.05, y: -5 }}
-                whileTap={{ scale: 0.95 }}
+              <SelectableCardWithSkeleton
                 key={type.value}
+                label={type.label}
+                imageUrl={type.imageUrl}
+                isSelected={storyType === type.value}
                 onClick={() => handleStorySelect(type.value)}
-                className={`cursor-pointer p-6 w-[250px] h-[350px] flex items-center justify-center rounded-[3rem] shadow-2xl transition-all duration-500 ${
-                  storyType === type.value
-                    ? "ring-[12px] ring-kidPink ring-offset-8 ring-offset-[#CAD3FF] grayscale-0 scale-105"
-                    : "grayscale hover:grayscale-[50%]"
-                }`}
-                style={{
-                  backgroundImage: `url(${type.imageUrl})`,
-                  backgroundSize: "cover",
-                  backgroundPosition: "center",
-                  backgroundRepeat: "no-repeat",
-                }}>
-                <span className="text-lg font-black text-white bg-black/50 px-6 py-2 rounded-full mt-[240px] backdrop-blur-md border-2 border-white/30">
-                  {type.label}
-                </span>
-              </motion.div>
+                size="large"
+                ringColor="ring-kidPink"
+                placeholderIcon={type.icon}
+              />
             ))}
           </div>
         </motion.div>
@@ -515,28 +506,16 @@ Return ONLY valid JSON.
             </h1>
             <div className="flex flex-wrap justify-center gap-6">
               {ageGroups.map((group) => (
-                <motion.div
-                  whileHover={{ scale: 1.05, y: -5 }}
-                  whileTap={{ scale: 0.95 }}
+                <SelectableCardWithSkeleton
                   key={group.value}
+                  label={group.label}
+                  imageUrl={group.imageUrl}
+                  isSelected={ageGroup === group.value}
                   onClick={() => handleAgeSelect(group.value)}
-                  className={`cursor-pointer p-6 w-[180px] h-[250px] flex items-center justify-center rounded-3xl shadow-xl transition-all duration-300
-              ${
-                ageGroup === group.value
-                  ? "ring-8 ring-kidYellow ring-offset-4 ring-offset-[#CAD3FF] grayscale-0"
-                  : "grayscale hover:grayscale-[50%]"
-              }
-             `}
-                  style={{
-                    backgroundImage: `url(${group.imageUrl})`,
-                    backgroundSize: "cover",
-                    backgroundPosition: "center",
-                    backgroundRepeat: "no-repeat",
-                  }}>
-                  <span className="text-lg font-extrabold text-white bg-black/40 px-3 py-1 rounded-full mt-[180px] backdrop-blur-sm">
-                    {group.label}
-                  </span>
-                </motion.div>
+                  size="standard"
+                  ringColor="ring-kidYellow"
+                  placeholderIcon={group.icon}
+                />
               ))}
             </div>
           </div>
@@ -549,25 +528,16 @@ Return ONLY valid JSON.
             </h1>
             <div className="flex flex-wrap justify-center gap-6">
               {storyTones.map((tone) => (
-                <motion.div
-                  whileHover={{ scale: 1.05, y: -5 }}
-                  whileTap={{ scale: 0.95 }}
+                <SelectableCardWithSkeleton
                   key={tone.value}
+                  label={tone.label}
+                  imageUrl={tone.imageUrl}
+                  isSelected={storyTone === tone.value}
                   onClick={() => handleToneSelect(tone.value)}
-                  className={`cursor-pointer p-6 w-[180px] h-[250px] flex items-center justify-center rounded-3xl shadow-xl transition-all duration-300
-                  ${
-                    storyTone === tone.value
-                      ? "ring-8 ring-kidBlue ring-offset-4 ring-offset-[#CAD3FF] grayscale-0"
-                      : "grayscale hover:grayscale-[50%]"
-                  }`}
-                  style={{
-                    backgroundImage: `url(${tone.imageUrl})`,
-                    backgroundSize: "cover",
-                    backgroundPosition: "center",
-                    backgroundRepeat: "no-repeat",
-                  }}>
-                  <span className="text-lg font-extrabold text-white bg-black/40 px-3 py-1 rounded-full mt-[180px] backdrop-blur-sm">{tone.label}</span>
-                </motion.div>
+                  size="standard"
+                  ringColor="ring-kidBlue"
+                  placeholderIcon={tone.icon}
+                />
               ))}
             </div>
           </div>
@@ -580,24 +550,16 @@ Return ONLY valid JSON.
             </h1>
             <div className="flex flex-wrap justify-center gap-6">
               {storyThemes.map((theme) => (
-                <motion.div
-                  whileHover={{ scale: 1.05, y: -5 }}
-                  whileTap={{ scale: 0.95 }}
+                <SelectableCardWithSkeleton
                   key={theme.value}
+                  label={theme.label}
+                  imageUrl={theme.imageUrl}
+                  isSelected={storyTheme === theme.value}
                   onClick={() => handleThemeSelect(theme.value)}
-                  className={`cursor-pointer p-6 w-[180px] h-[250px] flex items-center justify-center rounded-3xl shadow-xl transition-all duration-300
-                  ${
-                    storyTheme === theme.value
-                      ? "ring-8 ring-kidGreen ring-offset-4 ring-offset-[#CAD3FF] grayscale-0"
-                      : "grayscale hover:grayscale-[50%]"
-                  }`} style={{
-                    backgroundImage: `url(${theme.imageUrl})`,
-                    backgroundSize: "cover",
-                    backgroundPosition: "center",
-                    backgroundRepeat: "no-repeat",
-                  }}>
-                  <span className="text-lg font-extrabold text-white bg-black/40 px-3 py-1 rounded-full mt-[180px] backdrop-blur-sm">{theme.label}</span>
-                </motion.div>
+                  size="standard"
+                  ringColor="ring-kidGreen"
+                  placeholderIcon={theme.icon}
+                />
               ))}
             </div>
           </div>

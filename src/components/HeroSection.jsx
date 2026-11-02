@@ -1,8 +1,9 @@
 import { NavLink } from "react-router-dom";
-import hero from "../assets/hero.png";
+import hero from "../assets/hero.webp";
 import Footer from "./Footer";
 import AboutSection from "./AboutSection";
 import { motion } from "framer-motion";
+import ImageWithSkeleton from "./common/ImageWithSkeleton";
 
 const HeroSection = () => {
   return (
@@ -61,7 +62,14 @@ const HeroSection = () => {
              <p className="font-bold text-gray-500">Read in 6 languages</p>
           </motion.div>
           
-          <img src={hero} alt="Kids Reading" className="w-full drop-shadow-2xl rounded-[3rem] border-8 border-white object-cover" />
+          <ImageWithSkeleton 
+            src={hero} 
+            alt="Kids Reading" 
+            loading="eager"
+            containerClassName="w-full aspect-square drop-shadow-2xl rounded-[3rem] border-8 border-white bg-white/40"
+            className="w-full h-full object-cover" 
+            fallbackIcon="📚"
+          />
           
           <motion.div animate={{ y: [0, 10, 0] }} transition={{ repeat: Infinity, duration: 4 }} className="bg-kidYellow p-6 rounded-3xl shadow-2xl border-4 border-white absolute -bottom-10 -right-10 z-20 rotate-[5deg]">
              <h3 className="text-2xl font-black text-[#5253A3]">Coloring Pages 🖍️</h3>

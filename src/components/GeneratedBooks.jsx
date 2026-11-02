@@ -28,14 +28,16 @@ function paginateText(text, wordLimit = 25) {
   return pages;
 }
 
-// Component to stagger image loading and prevent API rate limits
+// Component to stagger image loading and provide skeleton shimmer during network fetch
 function StaggeredImage({ src, alt, index, className }) {
   const [loadSrc, setLoadSrc] = useState(null);
+  const [isLoaded, setIsLoaded] = useState(false);
   const [error, setError] = useState(false);
 
   React.useEffect(() => {
     // Reset state when src changes
     setLoadSrc(null);
+    setIsLoaded(false);
     setError(false);
 
     // If it's the cover (index 0), load immediately
@@ -47,35 +49,47 @@ function StaggeredImage({ src, alt, index, className }) {
     // Stagger image requests to avoid overwhelming the browser/API
     const timer = setTimeout(() => {
       setLoadSrc(src);
-    }, index * 800); // reduced delay for better UX
+    }, index * 600);
 
     return () => clearTimeout(timer);
   }, [src, index]);
 
   return (
-    <div className={className + " relative bg-white flex items-center justify-center overflow-hidden transition-all duration-1000 group"}>
-      {/* Sketching Overlay */}
-      {!error && !loadSrc && (
-        <div className="absolute inset-0 bg-white z-10 animate-pulse flex items-center justify-center">
-           <span className="text-gray-400 text-sm font-semibold italic">Sketching magic... 🪄</span>
+    <div className={className + " relative bg-white/50 flex items-center justify-center overflow-hidden transition-all duration-700 group"}>
+      {/* Shimmer Skeleton Overlay while waiting for timer or fetching image */}
+      {!error && (!loadSrc || !isLoaded) && (
+        <div className="absolute inset-0 z-10 bg-gradient-to-r from-purple-100 via-pink-100 to-purple-100 animate-shimmer flex flex-col items-center justify-center">
+          <div className="flex flex-col items-center justify-center opacity-60 animate-pulse">
+            <span className="text-3xl mb-1">🪄</span>
+            <span className="text-xs font-bold text-[#5253A3] italic">Sketching magic...</span>
+          </div>
         </div>
       )}
+
       {error ? (
-        <div className="flex flex-col items-center justify-center text-gray-400 p-4 text-center">
+        <div className="flex flex-col items-center justify-center text-gray-400 p-4 text-center z-10">
           <span className="text-4xl mb-2">🎨</span>
-          <p className="text-xs font-bold uppercase">Drawing in progress...</p>
+          <p className="text-xs font-bold uppercase text-[#5253A3]">Drawing in progress...</p>
         </div>
       ) : loadSrc ? (
         <div className="relative w-full h-full">
           <img 
             src={loadSrc} 
             alt={alt} 
-            className="w-full h-full object-cover transition-all duration-700 grayscale group-hover:grayscale-0" 
+            loading="lazy"
+            decoding="async"
+            className={`w-full h-full object-cover transition-all duration-700 ${
+              isLoaded ? "opacity-100 grayscale group-hover:grayscale-0" : "opacity-0"
+            }`}
             onLoad={(e) => {
+              setIsLoaded(true);
               e.target.classList.remove('grayscale');
               e.target.style.filter = 'none';
             }}
-            onError={() => setError(true)}
+            onError={() => {
+              setError(true);
+              setIsLoaded(true);
+            }}
           />
           {/* Paper Texture Overlay */}
           <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/paper-fibers.png')] opacity-30 pointer-events-none"></div>
