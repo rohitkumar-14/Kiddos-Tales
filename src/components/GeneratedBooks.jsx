@@ -39,6 +39,7 @@ import { NavLink } from "react-router-dom";
 import { demoStories } from "../data/demoStories";
 import ImageWithSkeleton from "./common/ImageWithSkeleton";
 import defaultCoverFallback from "../assets/story.webp";
+import ColoringPlaygroundModal from "./ColoringPlaygroundModal";
 
 // Helper function to split text into pages
 function paginateText(text, wordLimit = 25) {
@@ -152,7 +153,7 @@ function FlipbookReaderModal({
   story,
   onClose,
   onDownloadPDF,
-  onDownloadColoringBook,
+  onOpenColoring,
   onShare,
   onPlayAudiobook,
   unlockAchievement,
@@ -252,6 +253,17 @@ function FlipbookReaderModal({
             <FaHeadphones size={13} />
             <span className="hidden sm:inline">Audiobook</span>
           </button>
+
+          {onOpenColoring && (
+            <button
+              onClick={() => onOpenColoring(story)}
+              className="px-3 md:px-4 py-1.5 rounded-full bg-gradient-to-r from-kidPink to-rose-400 text-white font-black text-xs md:text-sm shadow-md hover:scale-105 transition flex items-center gap-1.5"
+              title="Open Coloring Studio"
+            >
+              <FaPalette size={13} />
+              <span className="hidden sm:inline">Color</span>
+            </button>
+          )}
 
           <button
             onClick={onClose}
@@ -414,11 +426,13 @@ function FlipbookReaderModal({
                 <span>Save as PDF</span>
               </button>
               <button
-                onClick={(e) => onDownloadColoringBook(e, story)}
+                onClick={(e) => {
+                  if (onOpenColoring) onOpenColoring(story);
+                }}
                 className="w-full py-2.5 rounded-full bg-white text-kidPink font-black text-xs shadow-md hover:scale-105 transition border-2 border-kidPink flex items-center justify-center gap-2"
               >
                 <FaPalette size={13} />
-                <span>Print Coloring Book</span>
+                <span>Coloring Studio & Sketch Book</span>
               </button>
               <button
                 onClick={(e) => onShare(e, story)}
@@ -468,6 +482,7 @@ function GeneratedBooks({
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [sortBy, setSortBy] = useState("newest");
   const [activeReadingStory, setActiveReadingStory] = useState(null);
+  const [coloringStory, setColoringStory] = useState(null);
 
   // Floating Audiobook Player State
   const [audioState, setAudioState] = useState({
@@ -862,7 +877,19 @@ function GeneratedBooks({
             </div>
 
             {/* Quick Actions */}
-            <div className="flex items-center gap-3 w-full md:w-auto justify-end">
+            <div className="flex items-center gap-2.5 w-full md:w-auto justify-end flex-wrap">
+              <button
+                onClick={() => {
+                  const targetStory = sortedStories[0] || demoStories[0];
+                  setColoringStory(targetStory);
+                }}
+                className="px-4 py-2.5 rounded-full bg-pink-50 hover:bg-pink-100 text-[#5253A3] font-black text-xs shadow-sm border border-pink-200 transition flex items-center gap-1.5 hover:scale-105"
+                title="Open Interactive Coloring Studio"
+              >
+                <FaPalette className="text-kidPink" />
+                <span>Coloring Studio</span>
+              </button>
+
               <button
                 onClick={handleLoadDemoStories}
                 className="px-4 py-2.5 rounded-full bg-white hover:bg-gray-50 text-[#5253A3] font-black text-xs shadow-sm border border-white transition flex items-center gap-1.5"
@@ -920,19 +947,6 @@ function GeneratedBooks({
                 whileHover={{ y: -10 }}
                 className="bg-white/80 backdrop-blur-md rounded-[2.5rem] border-4 border-white shadow-xl hover:shadow-2xl transition-all duration-300 p-5 flex flex-col justify-between overflow-hidden group relative"
               >
-                {/* Delete Button */}
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDeleteStory(story);
-                  }}
-                  className="absolute top-3 right-3 z-20 w-9 h-9 rounded-full bg-white text-rose-500 hover:bg-rose-500 hover:text-white border border-rose-100 flex items-center justify-center transition-all duration-200 shadow-md hover:scale-110 active:scale-95"
-                  title="Delete Book"
-                  aria-label="Delete Book"
-                >
-                  <FaTrash size={13} />
-                </button>
-
                 {/* Book Cover Thumbnail with 3D Spine Illusion */}
                 <div
                   onClick={() => setActiveReadingStory(story)}
@@ -1001,7 +1015,7 @@ function GeneratedBooks({
                       <HiSparkles className="text-xs text-pink-300" />
                     </button>
 
-                    <div className="grid grid-cols-3 gap-1.5">
+                    <div className="grid grid-cols-4 gap-1.5">
                       <button
                         onClick={() => handlePlayAudiobook(story)}
                         className="py-1.5 rounded-xl bg-amber-100/70 hover:bg-kidYellow text-[#5253A3] font-bold text-[11px] transition flex items-center justify-center gap-1 border border-amber-200/50"
@@ -1012,9 +1026,12 @@ function GeneratedBooks({
                       </button>
 
                       <button
-                        onClick={(e) => handleDownloadColoringBook(e, story)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setColoringStory(story);
+                        }}
                         className="py-1.5 rounded-xl bg-pink-50 hover:bg-kidPink hover:text-white text-kidPink font-bold text-[11px] transition flex items-center justify-center gap-1 border border-pink-200/50 group"
-                        title="Print Coloring Book"
+                        title="Interactive Coloring Studio & Sketch Book"
                       >
                         <FaPalette size={11} />
                         <span>Color</span>
@@ -1026,6 +1043,17 @@ function GeneratedBooks({
                         title="Share Story Link"
                       >
                         <FaShareAlt size={11} />
+                      </button>
+
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteStory(story);
+                        }}
+                        className="py-1.5 rounded-xl bg-gray-100 hover:bg-rose-50 hover:text-rose-500 text-gray-400 font-bold text-[11px] transition flex items-center justify-center border border-gray-200/50"
+                        title="Delete Book"
+                      >
+                        <FaTrash size={11} />
                       </button>
                     </div>
                   </div>
@@ -1072,9 +1100,18 @@ function GeneratedBooks({
           story={activeReadingStory}
           onClose={() => setActiveReadingStory(null)}
           onDownloadPDF={handleDownloadPDF}
-          onDownloadColoringBook={handleDownloadColoringBook}
+          onOpenColoring={(s) => setColoringStory(s)}
           onShare={handleShareMagicLink}
           onPlayAudiobook={handlePlayAudiobook}
+          unlockAchievement={unlockAchievement}
+        />
+      )}
+
+      {/* Interactive Story Coloring Studio & Sketch Book Playground */}
+      {coloringStory && (
+        <ColoringPlaygroundModal
+          story={coloringStory}
+          onClose={() => setColoringStory(null)}
           unlockAchievement={unlockAchievement}
         />
       )}
